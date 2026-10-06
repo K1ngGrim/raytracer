@@ -1,119 +1,78 @@
 #include "window.h"
+#include "../utility/bmp.h"
+#include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <cstdio>
+#include <thread>
 
-void takeScreenshot(Window *win) {
-    SDL_Surface *sshot = SDL_CreateRGBSurface(0, win->width, win->height, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
-    SDL_RenderReadPixels(win->renderer, NULL, SDL_PIXELFORMAT_ARGB8888, sshot->pixels, sshot->pitch);
+int Window::Run(const char *output_path) {
+    auto start = std::chrono::steady_clock::now();
+    Render();
+    double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+    printf("DEBUG: Rendered %dx%d with %d sample(s) per pixel in %.1f s\n", int(this->width), int(this->height), this->samples_per_pixel, seconds);
 
-    time_t now = time(0);
-    std::string dt = ctime(&now);
-    std::replace(dt.begin(), dt.end(), ':', '-');
-    std::replace(dt.begin(), dt.end(), ' ', '-');
-
-    dt = "./screenshots/screenshot" + dt;
-    dt = dt + ".bmp";
-    SDL_SaveBMP(sshot, dt.c_str());
-    SDL_FreeSurface(sshot);
-}
-
-bool Window::Init() {
-	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-		printf("Error initializing SDL2: %s\n", SDL_GetError());
-		return false;
-	}
-	printf("DEBUG: SDL Successfully Initialized!\n");
-
-	this->win = SDL_CreateWindow(
-		this->windowTitle,
-		SDL_WINDOWPOS_CENTERED,
-		SDL_WINDOWPOS_CENTERED,
-		this->width,
-		this->height,
-		0
-	);
-
-	if (!this->win) {
-		printf("Error initializing Window: %s\n", SDL_GetError());
-		return false;
-	}
-	printf("DEBUG: Window Successfully Initialized!\n");
-
-
-	this->renderer = SDL_CreateRenderer(
-		this->win,
-		-1,
-		SDL_RENDERER_ACCELERATED
-	);
-
-
-	if (!this->renderer) {
-		printf("Error initializing Renderer: %s\n", SDL_GetError());
-		return false;
-	}
-	printf("DEBUG: Renderer Successfully Initialized!\n");
-	return true;
-}
-
-int Window::Run() {
-	if (!this->Init()) {
-		this->running = false;
-		return -1;
-	}
-
-    uint a, b, delta;
-    b = SDL_GetTicks();
-	Render();
-    while (this->running) {
-        PollEvents();
+    if (!save_bmp(output_path, int(this->width), int(this->height), this->pixels)) {
+        printf("Error writing %s\n", output_path);
+        return -1;
     }
-	return 1;
+    printf("DEBUG: Image saved as %s\n", output_path);
+    return 1;
 }
 
+void Window::Render() {
+    const int w = int(this->width);
+    const int h = int(this->height);
+    const int samples = std::max(1, this->samples_per_pixel);
+    this->pixels.assign(size_t(w) * size_t(h), 0u);
 
+    // Bildebene neu berechnen, damit Aenderungen an der Kamera (Position, Blickrichtung, Oeffnungswinkel) beruecksichtigt werden
+    delete this->viewport;
+    this->viewport = new Viewport(*cam, this->width, this->height);
 
-void Window::PollEvents() {
-	while (SDL_PollEvent(&this->event)) {
-		switch (event.type) {
-		case SDL_QUIT:
-			this->running = false;
-			break;
-        case SDL_KEYDOWN:
-            switch( event.key.keysym.sym ){
-                case SDLK_LEFT: {
-                    Vector3df p = {0.5f, 0.f, 0.f};
-                    Vector3df v = this->cam->camera_center + p;
-                    this->cam->camera_center = v;
-                    break;
+    // Die Pixel sind voneinander unabhaengig und die Welt wird nur gelesen: Zeilen werden auf alle Kerne verteilt.
+    std::atomic<int> next_row{0};
+    std::atomic<int> rows_done{0};
+    auto render_rows = [&]() {
+        for (int j = next_row++; j < h; j = next_row++) {
+            for (int i = 0; i < w; ++i) {
+                seed_random(uint32_t(j) * uint32_t(w) + uint32_t(i));   // pro Pixel: gleiches Bild bei jedem Lauf
+
+                color p_color = {0.f, 0.f, 0.f};
+                for (int s = 0; s < samples; ++s) {
+                    // bei mehreren Samples zufaellig im Pixel, mit einem Sample durch die Pixelmitte
+                    float di = samples > 1 ? random_float() - 0.5f : 0.f;
+                    float dj = samples > 1 ? random_float() - 0.5f : 0.f;
+                    Vector3df pixel_center = this->viewport->pixel00_loc + ((float(i) + di) * this->viewport->pixel_delta_u) + ((float(j) + dj) * this->viewport->pixel_delta_v);
+                    Vector3df ray_direction = pixel_center - cam->camera_center;
+                    Ray3df ray = {cam->camera_center, ray_direction};
+
+                    p_color = p_color + cam->ray_color(ray, world, this->max_depth);
                 }
-                case SDLK_RIGHT: {
-                    Vector3df p = {-0.5f, 0.f, 0.f};
-                    Vector3df v = this->cam->camera_center + p;
-                    this->cam->camera_center = v;
-                    break;
+                p_color = (this->exposure / float(samples)) * p_color;
+
+                if (cam->path_tracing) {   // Gamma-Korrektur (gamma 2)
+                    for (size_t k = 0; k < 3; ++k)
+                        p_color[k] = std::sqrt(std::max(0.f, p_color[k]));
                 }
-                case SDLK_F10: {
-                    takeScreenshot(this);
-                }
+                render_pixel(this->pixels, w, p_color, i, j);
             }
-            break;
-		}
-	}
-}
 
-void Window::Render() const {
-
-    for (int j = 0; j < int(this->height); ++j) {
-        for (int i = 0; i < int(this->width); ++i) {
-            Vector3df pixel_center = this->viewport->pixel00_loc + (float(i) * this->viewport->pixel_delta_u) + (float(j) * this->viewport->pixel_delta_v);
-            Vector3df ray_direction = pixel_center - cam->camera_center;
-            Ray3df ray = {cam->camera_center, ray_direction};
-
-            color p_color = cam->ray_color(ray, world, 10);
-            render_pixel(this->renderer, p_color, i, j);
+            int done = ++rows_done;
+            if (done % 16 == 0 || done == h) {
+                printf("\rRendering: %3d%%", done * 100 / h);
+                fflush(stdout);
+            }
         }
-    }
-    SDL_RenderPresent(this->renderer);
+    };
+
+    unsigned thread_count = this->threads > 0 ? this->threads : std::max(1u, std::thread::hardware_concurrency());
+    std::vector<std::thread> threads;
+    for (unsigned t = 0; t < thread_count; ++t)
+        threads.emplace_back(render_rows);
+    for (std::thread & thread : threads)
+        thread.join();
+    printf("\n");
 }
 
 Window::~Window() = default;
-
-

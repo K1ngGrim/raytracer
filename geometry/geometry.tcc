@@ -195,6 +195,48 @@ bool Triangle<FLOAT, N>::intersects(const Ray<FLOAT, N> &ray, Vector<FLOAT, N> &
 }
 
 template <class FLOAT, size_t N>
+bool Triangle<FLOAT, N>::intersects_moeller_trumbore(const Ray<FLOAT, N> &ray, Intersection_Context<FLOAT, N> & context) const {
+    static_assert(N == 3u, "Moeller-Trumbore is only implemented for 3d");
+    const FLOAT EPSILON = 10e-9;
+
+    Vector<FLOAT, N> edge1 = b - a;
+    Vector<FLOAT, N> edge2 = c - a;
+
+    Vector<FLOAT, N> p_vec = ray.direction.cross_product(edge2);
+    FLOAT det = edge1 * p_vec;
+
+    if ( fabs(det) < EPSILON ) { // ray is parallel to the triangle, backface culling off
+      return false;
+    }
+    FLOAT inv_det = static_cast<FLOAT>(1.0) / det;
+
+    Vector<FLOAT, N> t_vec = ray.origin - a;
+    FLOAT bary_b = (t_vec * p_vec) * inv_det;   // weight of b
+    if ( bary_b < 0.0 || bary_b > 1.0 ) {
+      return false;
+    }
+
+    Vector<FLOAT, N> q_vec = t_vec.cross_product(edge1);
+    FLOAT bary_c = (ray.direction * q_vec) * inv_det;   // weight of c
+    if ( bary_c < 0.0 || bary_b + bary_c > 1.0 ) {
+      return false;
+    }
+
+    FLOAT t = (edge2 * q_vec) * inv_det;
+    if ( t < 0.0 ) {
+      return false;
+    }
+
+    // same conventions as intersects(): u is the weight of a, v is the weight of b
+    context.t = t;
+    context.intersection = ray.origin + t * ray.direction;
+    context.u = static_cast<FLOAT>(1.0) - bary_b - bary_c;
+    context.v = bary_b;
+    context.normal = edge1.cross_product(edge2);
+    return true;
+}
+
+template <class FLOAT, size_t N>
 bool refract(FLOAT refraction_index, Vector<FLOAT, N> normal, Vector<FLOAT, N> direction, Vector<FLOAT, N> & transmission) {
    FLOAT cos_theta = direction * normal; // both vectors need to be normalized
    FLOAT sin_phi_squared = refraction_index * refraction_index * (static_cast<FLOAT>(1.0) - cos_theta * cos_theta);

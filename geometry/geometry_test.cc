@@ -428,4 +428,61 @@ TEST(FRESNEL, Refract_1) {
 
 
 
+
+TEST(TRIANGLE, MoellerTrumbore_1) {
+  Triangle3df triangle = { {0.0, 0.0, 0.0}, {0.0, 3.0, 0.0},{3.0, 0.0, 0.0}  };
+  Ray3df ray{ {0.0, 0.0, 2.0}, {0.0, 0.0, -1.0} };
+  Intersection_Context<float,3u> context;
+
+  EXPECT_TRUE( triangle.intersects_moeller_trumbore(ray, context) );
+  EXPECT_NEAR(2.0, context.t, 0.000001 );
+  EXPECT_NEAR(0.0, context.intersection[2], 0.000001 );
+  EXPECT_NEAR(1.0, context.u, 0.000001 );
+  EXPECT_NEAR(0.0, context.v, 0.000001 );
+}
+
+TEST(TRIANGLE, MoellerTrumbore_Miss) {
+  Triangle3df triangle = { {0.0, 0.0, 0.0}, {0.0, 3.0, 0.0},{3.0, 0.0, 0.0}  };
+  Intersection_Context<float,3u> context;
+
+  EXPECT_FALSE( triangle.intersects_moeller_trumbore(Ray3df{ {5.0, 5.0, 2.0}, {0.0, 0.0, -1.0} }, context) ); // beside the triangle
+  EXPECT_FALSE( triangle.intersects_moeller_trumbore(Ray3df{ {1.0, 1.0, 2.0}, {0.0, 0.0, 1.0} }, context) );  // triangle is behind the ray
+  EXPECT_FALSE( triangle.intersects_moeller_trumbore(Ray3df{ {1.0, 1.0, 2.0}, {1.0, 0.0, 0.0} }, context) );  // parallel to the triangle
+}
+
+// Moeller-Trumbore must give the same result as the (Badouel) intersects() for arbitrary rays
+TEST(TRIANGLE, MoellerTrumboreEqualsBadouel) {
+  uint32_t state = 12345u;
+  auto rnd = [&state](float min, float max) {
+    state = state * 1664525u + 1013904223u;
+    return min + (max - min) * float(state >> 8) / 16777216.0f;
+  };
+
+  int hits = 0;
+  for (int i = 0; i < 20000; ++i) {
+    Triangle3df triangle = { {rnd(-5,5), rnd(-5,5), rnd(-5,5)}, {rnd(-5,5), rnd(-5,5), rnd(-5,5)}, {rnd(-5,5), rnd(-5,5), rnd(-5,5)} };
+    Ray3df ray{ {rnd(-8,8), rnd(-8,8), rnd(-8,8)}, {rnd(-1,1), rnd(-1,1), rnd(-1,1)} };
+    Intersection_Context<float,3u> badouel{}, moeller{};
+
+    bool hit_badouel = triangle.intersects(ray, badouel);
+    bool hit_moeller = triangle.intersects_moeller_trumbore(ray, moeller);
+
+    ASSERT_EQ(hit_badouel, hit_moeller) << "ray/triangle " << i;
+    if (hit_badouel) {
+      ++hits;
+      EXPECT_NEAR(badouel.t, moeller.t, 0.001f * (1.0f + badouel.t));
+      EXPECT_NEAR(badouel.u, moeller.u, 0.001f);
+      EXPECT_NEAR(badouel.v, moeller.v, 0.001f);
+      for (size_t k = 0; k < 3; ++k) {
+        EXPECT_NEAR(badouel.normal[k], moeller.normal[k], 0.001f * (1.0f + fabs(badouel.normal[k])));
+      }
+      // the normal must be perpendicular to the triangle's edges
+      Vector3df e1 = triangle.get_b() - triangle.get_a(), e2 = triangle.get_c() - triangle.get_a();
+      EXPECT_NEAR(0.0f, moeller.normal * e1, 0.001f * (1.0f + moeller.normal.length() * e1.length()));
+      EXPECT_NEAR(0.0f, moeller.normal * e2, 0.001f * (1.0f + moeller.normal.length() * e2.length()));
+    }
+  }
+  EXPECT_GT(hits, 200); // the test must really compare hits and not only misses
+}
+
 }

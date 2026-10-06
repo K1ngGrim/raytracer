@@ -28,8 +28,8 @@ Makefile
 *.so
 *.dSYM/
 
-# Vom Programm erzeugte Screenshots (F10 -> ./screenshots/*.bmp)
-/screenshots/
+# Vom Programm gerenderte Bilder (raytracer.bmp im Arbeitsverzeichnis)
+/*.bmp
 
 # IDEs und Editoren
 .idea/

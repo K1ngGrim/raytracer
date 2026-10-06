@@ -5,6 +5,7 @@
 #include <array>
 #include <cstddef>
 #include <cmath>
+#include <cstdint>
 #include <random>
 
 // A Vector consisting of N scalar values of type FLOAT_TYPE
@@ -98,9 +99,30 @@ typedef Vector<float, 2u> Vector2df;
 typedef Vector<float, 3u> Vector3df;
 typedef Vector<float, 4u> Vector4df;
 
+// Zufallszahlen: xorshift32 mit eigenem Zustand pro Thread (rand() hat einen globalen Zustand und ist nicht thread-sicher).
+// seed_random() setzt den Zustand, z.B. pro Pixel, damit Bilder bei jedem Lauf und mit jeder Threadanzahl identisch sind.
+inline uint32_t & random_state() {
+    thread_local uint32_t state = 2463534242u;
+    return state;
+}
+
+inline void seed_random(uint32_t seed) {
+    // Wang-Hash, damit auch aufeinanderfolgende Seeds (Pixelnummern) unabhaengige Folgen ergeben
+    seed = (seed ^ 61u) ^ (seed >> 16);
+    seed *= 9u;
+    seed ^= seed >> 4;
+    seed *= 0x27d4eb2du;
+    seed ^= seed >> 15;
+    random_state() = seed != 0u ? seed : 1u;
+}
+
 inline float random_float() {
     // Returns a random real in [0,1).
-    return rand() / (RAND_MAX + 1.0);
+    uint32_t & x = random_state();
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    return float(x >> 8) * (1.0f / 16777216.0f);
 }
 
 inline float random_float(float min, float max) {
@@ -109,7 +131,7 @@ inline float random_float(float min, float max) {
 }
 
 static inline Vector3df vector_rand() {
-    return {(float) rand(), (float) rand(), (float) rand()};
+    return {random_float(), random_float(), random_float()};
 }
 
 static inline Vector3df vector_rand(float min, float max) {
@@ -117,10 +139,10 @@ static inline Vector3df vector_rand(float min, float max) {
 }
 
 inline Vector3df random_in_unit_sphere() {
+    // Rejection Sampling: Zufallspunkt im Würfel [-1,1)^3, bis er in der Einheitskugel liegt
     while (true) {
-        auto p = vector_rand();
-        p.normalize();
-        if (p.square_of_length() <= 1)
+        auto p = vector_rand(-1.f, 1.f);
+        if (p.square_of_length() < 1)
             return p;
     }
 }

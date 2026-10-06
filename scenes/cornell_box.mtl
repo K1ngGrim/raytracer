@@ -1,0 +1,23 @@
+# Materialien der Cornell-Box
+newmtl white
+Kd 0.73 0.73 0.73
+
+newmtl red
+Kd 0.65 0.05 0.05
+
+newmtl green
+Kd 0.12 0.45 0.15
+
+newmtl light
+Kd 1.0 1.0 1.0
+Ke 4.0 3.7 3.0
+
+newmtl mirror
+Kd 0.0 0.0 0.0
+Ks 0.9 0.9 0.9
+illum 3
+
+newmtl glass
+Kd 1.0 1.0 1.0
+Ni 1.5
+d 0.1

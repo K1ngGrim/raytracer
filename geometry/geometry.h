@@ -134,6 +134,22 @@ public:
   //   context.t is set to a value with intersection = ray.origin + t * ray.direction
   //   context.normal points away from the surface (clockwise order of a,b, and c)
   bool intersects(const Ray<FLOAT, N> &ray, Intersection_Context<FLOAT, N> & context) const;
+
+  // optimized variant of intersects(ray, context) using the Moeller-Trumbore algorithm
+  // (no precomputed plane equation, only two cross products and three dot products)
+  // context.t, context.intersection, context.u and context.v are the same as in intersects(ray, context)
+  // (barycentric coordinates: weights of a and b)
+  // context.normal is the not normalized normal (b - a) x (c - a), same as in intersects()
+  // only implemented for N = 3
+  bool intersects_moeller_trumbore(const Ray<FLOAT, N> &ray, Intersection_Context<FLOAT, N> & context) const;
+
+  // returns the vertices and vertex normals (needed for smooth shading)
+  Vector<FLOAT, N> get_a() const { return a; }
+  Vector<FLOAT, N> get_b() const { return b; }
+  Vector<FLOAT, N> get_c() const { return c; }
+  Vector<FLOAT, N> get_na() const { return na; }
+  Vector<FLOAT, N> get_nb() const { return nb; }
+  Vector<FLOAT, N> get_nc() const { return nc; }
 };
 
 

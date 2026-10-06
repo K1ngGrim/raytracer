@@ -123,7 +123,7 @@ template <class FLOAT_TYPE, size_t N>
 Vector<FLOAT_TYPE, 3u> Vector<FLOAT_TYPE, N>::cross_product(const Vector<FLOAT_TYPE, 3u> v) const {
     assert(N >= 3u);
     return {this->vector[1] * v.vector[2] - this->vector[2] * v.vector[1],
-            this->vector[0] * v.vector[2] - this->vector[2] * v.vector[0],
+            this->vector[2] * v.vector[0] - this->vector[0] * v.vector[2],
             this->vector[0] * v.vector[1] - this->vector[1] * v.vector[0] };
 }
 

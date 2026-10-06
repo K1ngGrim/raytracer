@@ -319,7 +319,7 @@ TEST(VECTOR, CrossVectorProduct2) {
   EXPECT_NEAR(3.0,  vector2[1], 0.00001);
   EXPECT_NEAR(0.0, vector2[2], 0.00001);
   EXPECT_NEAR(6.0, cross[0], 0.00001);
-  EXPECT_NEAR(-6.0,  cross[1], 0.00001);
+  EXPECT_NEAR(6.0,  cross[1], 0.00001);
   EXPECT_NEAR(-3.0, cross[2], 0.00001);
 }
 
@@ -335,7 +335,7 @@ TEST(VECTOR, CrossVectorProduct3) {
   EXPECT_NEAR(0.0,  vector2[1], 0.00001);
   EXPECT_NEAR(-2.0, vector2[2], 0.00001);
   EXPECT_NEAR(0.0, cross[0], 0.00001);
-  EXPECT_NEAR(10.0,  cross[1], 0.00001);
+  EXPECT_NEAR(-10.0,  cross[1], 0.00001);
   EXPECT_NEAR(0.0, cross[2], 0.00001);
 }
 
@@ -352,7 +352,7 @@ TEST(VECTOR, CrossVectorProduct4) {
   EXPECT_NEAR(0.0,  vector2[1], 0.00001);
   EXPECT_NEAR(-2.0, vector2[2], 0.00001);
   EXPECT_NEAR(0.0, cross[0], 0.00001);
-  EXPECT_NEAR(-10.0,  cross[1], 0.00001);
+  EXPECT_NEAR(10.0,  cross[1], 0.00001);
   EXPECT_NEAR(0.0, cross[2], 0.00001);
 }
 
@@ -375,7 +375,7 @@ TEST(VECTOR, CrossVectorProduct5) {
 
   
   EXPECT_NEAR(0.0,  cross[0], 0.00001);
-  EXPECT_NEAR(10.0, cross[1], 0.00001);
+  EXPECT_NEAR(-10.0, cross[1], 0.00001);
   EXPECT_NEAR(0.0,  cross[2], 0.00001);
 }
 
@@ -385,7 +385,7 @@ TEST(VECTOR, CrossVectorProduct6) {
   Vector3df cross = vector1.cross_product(vector2);
   
   EXPECT_NEAR(0.0, cross[0], 0.00001);
-  EXPECT_NEAR(1.0, cross[1], 0.00001);
+  EXPECT_NEAR(-1.0, cross[1], 0.00001);
   EXPECT_NEAR(0.0, cross[2], 0.00001);
 }
 
