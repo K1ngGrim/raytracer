@@ -1,0 +1,45 @@
+# Build-Verzeichnisse (CMake out-of-source, CLion, VS Code)
+/build/
+/out/
+/cmake-build-*/
+
+# CMake-Artefakte bei In-Source-Builds
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+cmake_install.cmake
+CTestTestfile.cmake
+Testing/
+_deps/
+install_manifest.txt
+compile_commands.json
+Makefile
+
+# Kompilierte Programme bei In-Source-Builds
+/raytracer
+/math_test
+/geometry_test
+
+# Objekt- und Bibliotheksdateien, Debug-Symbole
+*.o
+*.obj
+*.a
+*.dylib
+*.so
+*.dSYM/
+
+# Vom Programm erzeugte Screenshots (F10 -> ./screenshots/*.bmp)
+/screenshots/
+
+# IDEs und Editoren
+.idea/
+.vscode/
+.cache/
+*.swp
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
