@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
+#include <cstring>
 #include <vector>
 #include "../view/window.h"
 #include "metal_source.h"   // kMetalSource, wird von CMake aus gpu/raytrace.metal erzeugt
@@ -100,10 +101,22 @@ bool Window::RenderGpu() {
         const int w = int(this->width), h = int(this->height);
         const int samples = std::max(1, this->samples_per_pixel);
 
+        // Der Ausgabepuffer hat 4 Byte pro Pixel (0x00RRGGBB). Zu grosse Bilder koennen Metal nicht allokieren.
+        const size_t out_bytes = size_t(w) * size_t(h) * sizeof(uint32_t);
+        if (out_bytes > device.maxBufferLength) {
+            printf("Error: a %dx%d image needs a %.1f GB GPU buffer, but this device allows at most %.1f GB\n",
+                   w, h, double(out_bytes) / 1e9, double(device.maxBufferLength) / 1e9);
+            return false;
+        }
+
         id<MTLBuffer> object_buffer = [device newBufferWithBytes:objects.data() length:objects.size() * sizeof(GpuObject) options:MTLResourceStorageModeShared];
         id<MTLBuffer> light_buffer = [device newBufferWithBytes:lights.data() length:lights.size() * sizeof(GpuLight) options:MTLResourceStorageModeShared];
-        id<MTLBuffer> out_buffer = [device newBufferWithLength:size_t(w) * size_t(h) * 4 * sizeof(float) options:MTLResourceStorageModeShared];
+        id<MTLBuffer> out_buffer = [device newBufferWithLength:out_bytes options:MTLResourceStorageModeShared];
         id<MTLCommandQueue> queue = [device newCommandQueue];
+        if (!object_buffer || !light_buffer || !out_buffer || !queue) {
+            printf("Error: could not allocate the GPU buffers (%.1f GB for the image)\n", double(out_bytes) / 1e9);
+            return false;
+        }
 
         Params params = {};
         set4(params.camera_center, cam->camera_center);
@@ -153,14 +166,8 @@ bool Window::RenderGpu() {
         }
         printf("\n");
 
-        // Ergebnis in das Pixelformat der CPU-Variante umwandeln (Begrenzen auf 0..1 und Umrechnung in 8 Bit)
-        const float *data = static_cast<const float *>(out_buffer.contents);
-        for (int j = 0; j < h; ++j) {
-            for (int i = 0; i < w; ++i) {
-                const float *c = data + (size_t(j) * size_t(w) + size_t(i)) * 4;
-                render_pixel(this->pixels, w, color{c[0], c[1], c[2]}, i, j);
-            }
-        }
+        // Der Kernel liefert schon fertige Pixel im Format von Window::pixels
+        std::memcpy(this->pixels.data(), out_buffer.contents, out_bytes);
         return true;
     }
 }

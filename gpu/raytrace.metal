@@ -396,10 +396,16 @@ float3 trace(float3 o, float3 d, constant Params &P, device const GpuObject *obj
     return radiance;
 }
 
+// wie render_pixel (utility/color.cc): auf 0..1 begrenzen (NaN wird zu 0), mit 255 multiplizieren, Nachkommaanteil verwerfen
+inline uint to_channel(float c) {
+    c = (c > 0.0f) ? (c < 1.0f ? c : 1.0f) : 0.0f;
+    return uint(c * 255.0f);
+}
+
 kernel void render(constant Params &P [[buffer(0)]],
                    device const GpuObject *objs [[buffer(1)]],
                    device const GpuLight *lights [[buffer(2)]],
-                   device float4 *out [[buffer(3)]],
+                   device uint *out [[buffer(3)]],   // 0x00RRGGBB, wie Window::pixels
                    uint2 gid [[thread_position_in_grid]]) {
     uint i = gid.x;
     uint j = P.row_start + gid.y;
@@ -423,5 +429,5 @@ kernel void render(constant Params &P [[buffer(0)]],
     float3 color = (P.exposure / float(P.samples)) * sum;
     if (P.path_tracing != 0u)   // Gamma-Korrektur (gamma 2)
         color = sqrt(max(color, float3(0.0f)));
-    out[j * P.width + i] = float4(color, 1.0f);
+    out[j * P.width + i] = (to_channel(color.x) << 16) | (to_channel(color.y) << 8) | to_channel(color.z);
 }

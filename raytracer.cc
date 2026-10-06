@@ -10,6 +10,8 @@
 #include "utility/light.h"
 #include "world/world.h"
 #include "utility/obj_loader.h"
+#include "utility/bmp.h"
+#include <new>
 #include <cstdlib>
 #include <string>
 
@@ -200,6 +202,12 @@ int main(int argc, char** argv) {
     else if (width == 0) width = std::max(1, int(float(height) * 16.f / 9.f));
     if (samples == 0) samples = path_tracing ? 64 : 1;
 
+    // Die BMP-Datei darf nicht groesser als 4 GiB werden (32-Bit-Groessen im Format), ausserdem braucht jedes Pixel Speicher
+    if (!bmp_fits(width, height)) {
+        printf("Error: %dx%d is too large, a BMP file can hold at most 4 GiB (about 1.4 gigapixels)\n", width, height);
+        return 1;
+    }
+
     auto world = new World();
     auto win = new Window("Raytracer", float(width), float(height), world);
     win->samples_per_pixel = samples;
@@ -249,5 +257,10 @@ int main(int argc, char** argv) {
         world->lights.push_back(PointLight(light_position));
     }
 
-    return win->Run(output.c_str()) == 1 ? 0 : 1;
+    try {
+        return win->Run(output.c_str()) == 1 ? 0 : 1;
+    } catch (const std::bad_alloc &) {
+        printf("\nError: not enough memory for a %dx%d image, try a smaller size\n", width, height);
+        return 1;
+    }
 }

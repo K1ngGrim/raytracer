@@ -68,7 +68,7 @@ Alle Parameter sind optional. Die Szene selbst ist nicht einstellbar.
 | `--exposure <wert>` | Helligkeitsfaktor, > 0 | 1 (Kugelszene mit `--pt` 0,25) |
 | `--help` | Hilfe ausgeben | |
 
-Bei ungültigen Werten gibt das Programm die Hilfe aus und beendet sich.
+Bei ungültigen Werten gibt das Programm die Hilfe aus und beendet sich. Die Bildgröße ist durch das BMP-Format begrenzt: Die Datei darf höchstens 4 GiB groß werden, das sind etwa 1,4 Gigapixel (zum Beispiel 40000 × 22500). Größere Bilder werden vor dem Rendern abgelehnt. Jedes Pixel braucht außerdem 4 Byte Arbeitsspeicher (auf der GPU zusätzlich 4 Byte im GPU-Puffer).
 
 ## Szenen im Wavefront-Format
 
@@ -159,3 +159,4 @@ Dazu gehört ein Test, der Badouel und Möller-Trumbore an 20.000 zufälligen St
 - Die Szene (Objekte, Materialien, Anzahl der Lichter) lässt sich nicht über die Kommandozeile ändern, nur die Kamera und die Lichtposition.
 - Lichter sind Punktlichter. Flächenlichter gibt es nur als leuchtende Objekte, sie werden nicht gezielt gesampelt.
 - Die GPU-Variante gibt es nur auf macOS.
+- Bilder über etwa 1,4 Gigapixel gehen nicht, weil das BMP-Format keine Dateien über 4 GiB kennt.
