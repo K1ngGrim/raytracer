@@ -1,0 +1,40 @@
+# Blender 4.3.2 MTL File: 'None'
+# www.blender.org
+
+newmtl None
+Ns 0.000000
+Ka 0.1 0.1 0.1
+Kd 0.800000 0.800000 0.800000
+Ks 0.0 0.0 0.0
+Ni 1.500000
+d 1.000000
+illum 2
+
+newmtl porcelain
+Ka 0.1 0.1 0.1        # Subtle bluish tint for ambient
+Kd 0.8 0.8 0.8        # White diffuse color
+Ks 0.4 0.4 0.4        # specular highlights
+Ns 5                   # Low specular exponent (slightly glossy)
+d 1.0                # Opaque
+
+newmtl clay
+Ka 0.1 0.1 0.1      # Earthy ambient color
+Kd 0.8 0.4 0.2      # Reddish-brown diffuse color
+Ks 0.0 0.0 0.0    #  specular
+Ns 2               # Very low specular exponent (matte)
+d 1.0                # Opaque
+
+newmtl glass
+Ka 0.1 0.1 0.1        # No ambient
+Kd 0.3 0.3 0.3        # Very low diffuse (mostly transparent)
+Ks 0.3 0.3 0.3        # specular (very reflective)
+Ns 125                # High specular exponent (sharp highlights)
+d 0.3                 # High transparency / low dissolve
+Ni 1.5                # Index of refraction (typical for glass)
+
+newmtl brushed_aluminum
+Ka 0.1 0.1 0.1      # Medium gray ambient
+Kd 0.7 0.7 0.7      # Light gray diffuse
+Ks 0.0 0.0 0.0      # Moderate specular
+Ns 20               # Moderate specular exponent (brushed look)
+d 1.0                # Opaque
