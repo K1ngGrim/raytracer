@@ -95,7 +95,8 @@ static void print_usage() {
         "\n"
         "Verfahren\n"
         "  --pt               Path-Tracing statt Whitted: diffuse Bounces, unscharfe Reflexion bei glossy, Gamma-Korrektur\n"
-        "  --badouel          Dreiecke mit Badouel statt Moeller-Trumbore schneiden\n"
+        "  --badouel          Dreiecke mit Badouel statt Moeller-Trumbore schneiden (nur CPU, die GPU nutzt Moeller-Trumbore)\n"
+        "  --gpu              auf der GPU rendern (Metal, nur macOS), -t wird dann ignoriert\n"
         "\n"
         "Kamera und Licht\n"
         "  --cam x y z        Kameraposition\n"
@@ -155,7 +156,7 @@ int main(int argc, char** argv) {
     int width = 0, height = 0;   // 0: nicht angegeben
     int samples = 0, depth = 10, threads = 0;
     float fov = 0.f, sky = -1.f, exposure = -1.f;   // fov 0, sky < 0 und exposure < 0: Standardwert der Szene
-    bool path_tracing = false, badouel = false;
+    bool path_tracing = false, badouel = false, gpu = false;
     bool own_cam = false, own_look = false, own_light = false;
     Vector3df cam_position = {0.f, 0.f, 0.f}, look_target = {0.f, 0.f, 0.f}, light_position = {0.f, 0.f, 0.f};
 
@@ -179,6 +180,7 @@ int main(int argc, char** argv) {
         else if (arg == "--exposure" && has(1)) ok = parse_float(argv[++i], exposure) && exposure > 0.f;
         else if (arg == "--pt")                 path_tracing = true;
         else if (arg == "--badouel")            badouel = true;
+        else if (arg == "--gpu")                gpu = true;
         else if (arg == "--cam")              { ok = read3(cam_position);   i += 3; own_cam = true; }
         else if (arg == "--look")             { ok = read3(look_target);    i += 3; own_look = true; }
         else if (arg == "--light")            { ok = read3(light_position); i += 3; own_light = true; }
@@ -202,6 +204,7 @@ int main(int argc, char** argv) {
     auto win = new Window("Raytracer", float(width), float(height), world);
     win->samples_per_pixel = samples;
     win->max_depth = depth;
+    win->use_gpu = gpu;
     win->threads = unsigned(threads);
     win->cam->path_tracing = path_tracing;
     world->moeller_trumbore = !badouel;

@@ -22,6 +22,7 @@ public:
     int max_depth = 10;          // maximale Rekursionstiefe (Reflexionen, Brechungen, Bounces)
     unsigned threads = 0;        // Anzahl der Threads, 0: alle Kerne
     float exposure = 1.f;        // Helligkeitsfaktor, mit dem jede Pixelfarbe multipliziert wird
+    bool use_gpu = false;        // true: mit Metal auf der GPU rendern (nur macOS), sonst auf der CPU
 
     // Konstruktor, Deklaration
     Window(const char *title, float w, World* world)
@@ -46,6 +47,7 @@ public:
     // Rendert das Bild und speichert es als BMP. Gibt 1 bei Erfolg und -1 bei einem Schreibfehler zurueck.
     int Run(const char *output_path = "raytracer.bmp");
     void Render();
+    bool RenderGpu();   // gleiches Bild wie Render(), berechnet auf der GPU mit Metal (gpu/metal_renderer.mm), false bei einem Fehler
 
     // Destruktor, Deklaration
     ~Window();

@@ -101,6 +101,9 @@ public:
   
   // returns true iff the given point is inside this Sphere or on its surface
   bool inside(const Vector<FLOAT, N> p) const;
+
+  Vector<FLOAT, N> get_center() const { return center; }
+  FLOAT get_radius() const { return radius; }
 };
 
 template <class FLOAT, size_t N>

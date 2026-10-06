@@ -30,6 +30,12 @@ void Window::Render() {
     delete this->viewport;
     this->viewport = new Viewport(*cam, this->width, this->height);
 
+    if (this->use_gpu) {
+        if (this->RenderGpu())
+            return;
+        printf("DEBUG: GPU rendering failed, falling back to the CPU\n");
+    }
+
     // Die Pixel sind voneinander unabhaengig und die Welt wird nur gelesen: Zeilen werden auf alle Kerne verteilt.
     std::atomic<int> next_row{0};
     std::atomic<int> rows_done{0};
@@ -74,5 +80,12 @@ void Window::Render() {
         thread.join();
     printf("\n");
 }
+
+#ifndef USE_METAL
+bool Window::RenderGpu() {
+    printf("Error: GPU rendering needs Metal and is only available on macOS\n");
+    return false;
+}
+#endif
 
 Window::~Window() = default;
