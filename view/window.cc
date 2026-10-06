@@ -64,9 +64,6 @@ int Window::Run() {
 	Render();
     while (this->running) {
         PollEvents();
-    	Render();
-    	takeScreenshot(this);
-    	break;
     }
 	return 1;
 }

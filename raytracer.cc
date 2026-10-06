@@ -78,7 +78,7 @@ Camera* cam;
 
 int main(void) {
     auto world = new World();
-    auto win = new Window("Raytracer", 2.f*1920.f, world);
+    auto win = new Window("Raytracer", 1280.f, world);
 
     WorldObject obj1 = WorldObject({ { 10021.f, 0.0f, 0.f }, 10000.f },{{0.01f, 1.f, 0.01f}, 0});
     WorldObject obj2 = WorldObject({ { -10021.f, 0.0f, 0.f }, 10000.f }, {{1.f, 0.f, 0.f}, 0});
@@ -101,11 +101,5 @@ int main(void) {
     world->add(obj7);
 
     win->Run();
-
-
-  // Für jede Pixelkoordinate x,y
-  //   Sehstrahl für x,y mit Kamera erzeugen
-  //   Farbe mit raytracing-Methode bestimmen
-  //   Beim Bildschirm die Farbe für Pixel x,y, setzten
 }
 
