@@ -22,7 +22,6 @@ Makefile
 
 # Objekt- und Bibliotheksdateien, Debug-Symbole
 *.o
-*.obj
 *.a
 *.dylib
 *.so
