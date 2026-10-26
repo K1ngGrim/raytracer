@@ -9,15 +9,7 @@ void World::add(WorldObject s)
 }
 
 bool World::ray_intersects_any(Ray3df ray, Intersection_Context<float, 3> context) {
-    for(WorldObject & obj: this->objects) {
-        if(obj.is_triangle) {
-            if((this->moeller_trumbore ? obj.triangle.intersects_moeller_trumbore(ray, context) : obj.triangle.intersects(ray, context)) && context.t > 0)
-                return true;
-        } else if(obj.sphere.intersects(ray, context) && context.t > 0) {
-            return true;
-        }
-    }
-    return false;
+
 }
 
 WorldObject World::get(int index) 
@@ -28,8 +20,10 @@ WorldObject World::get(int index)
 WorldObject* World::find_nearest_object(Ray3df ray, Intersection_Context<float, 3> & fc) {
     Intersection_Context<float, 3> context;
     float t = std::numeric_limits<float>::max();
-    WorldObject* nearest = nullptr;
 
+    if(this->objects.empty()) return nullptr;
+
+    WorldObject* nearest = nullptr;
     for(WorldObject & obj: this->objects) {
         bool intersects;
         if(obj.is_triangle) {
@@ -63,12 +57,12 @@ WorldObject::WorldObject(Sphere3df sphere, Material c) {
     this->sphere = sphere;
 }
 
+WorldObject::WorldObject() = default;
+
 WorldObject::WorldObject(Triangle3df triangle, Material c) : triangle(triangle) {
     this->material = c;
     this->is_triangle = true;
 }
-
-WorldObject::WorldObject() = default;
 
 Vector3df WorldObject::shading_normal(Ray3df ray, Intersection_Context<float, 3> context) const {
     if(!this->is_triangle)
@@ -89,12 +83,4 @@ Vector3df WorldObject::shading_normal(Ray3df ray, Intersection_Context<float, 3>
     if(geometric * ray.direction > 0.f)   // Normale zeigt gegen den Strahl
         normal = -1.f * normal;
     return normal;
-}
-
-bool WorldObject::ray_starts_inside(Ray3df ray) const {
-    if(!this->is_triangle)
-        return this->sphere.inside(ray.origin);
-
-    Vector3df outward = (this->triangle.get_b() - this->triangle.get_a()).cross_product(this->triangle.get_c() - this->triangle.get_a());
-    return outward * ray.direction > 0.f;
 }

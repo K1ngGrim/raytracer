@@ -4,15 +4,30 @@
 #include <string>
 #include "../world/world.h"
 
-// Liest eine Wavefront-Datei (.obj) und fuegt alle Dreiecke als WorldObject in die Welt ein.
-// Unterstuetzt: v, vn, f (v, v/vt, v//vn, v/vt/vn, negative Indizes, Polygone werden zu Dreiecken zerlegt),
-//               mtllib und usemtl mit einer .mtl-Datei (Kd, Ke, Ks, Ni, d/Tr, illum).
-// Ohne Vertexnormalen wird die Normale des Dreiecks verwendet, ohne Material default_material.
-// Materialzuordnung aus der .mtl-Datei:
-//   Ke > 0 -> EMISSIVE, d < 1 -> GLASS (Ni = Brechungsindex), illum 3 oder 5 -> REFLECTIVE (Farbe Ks), sonst LAMBERTIAN (Farbe Kd)
-// bounds_min und bounds_max enthalten danach den Quader um alle Dreiecke der Datei.
-// Gibt false zurueck, wenn die Datei nicht gelesen werden konnte oder kein Dreieck enthielt.
+/**
+ * @file obj_loader.h
+ * @brief Import von Szenen im Wavefront-Format (.obj mit optionaler .mtl-Datei).
+ */
+
+/**
+ * @brief Liest eine Wavefront-Datei und fuegt alle Dreiecke als WorldObject in die Welt ein.
+ *
+ * Unterstuetzt werden die Zeilen v, vn und f (in den Formen v, v/vt, v//vn und v/vt/vn, auch mit negativen
+ * Indizes). Polygone werden als Faecher in Dreiecke zerlegt. Texturkoordinaten (vt) werden ignoriert.
+ * Ohne Vertexnormalen wird die Normale des Dreiecks verwendet.
+ *
+ * Materialien kommen aus der mit mtllib angegebenen .mtl-Datei und werden mit usemtl ausgewaehlt:
+ * die Farbe ist Kd, bei illum 3 oder 5 ist das Material ein Spiegel (Farbe Ks), sonst ist es diffus.
+ * Ohne Angabe gilt default_material.
+ *
+ * @param path             Pfad der .obj-Datei
+ * @param world            Welt, in die die Dreiecke eingefuegt werden
+ * @param bounds_min       kleinste Koordinaten aller Dreiecke (Ausgabe)
+ * @param bounds_max       groesste Koordinaten aller Dreiecke (Ausgabe)
+ * @param default_material Material fuer Dreiecke ohne usemtl
+ * @return false, wenn die Datei nicht gelesen werden konnte oder kein Dreieck enthielt
+ */
 bool load_obj(const std::string &path, World &world, Vector3df &bounds_min, Vector3df &bounds_max,
-              Material default_material = Material({0.8f, 0.8f, 0.8f}, LAMBERTIAN));
+              Material default_material = Material({0.8f, 0.8f, 0.8f}, 0));
 
 #endif

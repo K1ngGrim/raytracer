@@ -6,23 +6,19 @@
 #include "camera.h"
 #include "viewport.h"
 
-// Der "Bildschirm": rendert die Szene in einen Pixelpuffer und schreibt ihn als BMP-Datei.
 class Window
 {
 private:
     float aspect_ratio = 16.0f / 9.f;
 public:
     std::vector<uint32_t> pixels; // 0x00RRGGBB, Zeile fuer Zeile von oben links
+    bool changed = true;
     Camera* cam;
     Viewport* viewport;
     World* world;
     float width, height;
     const char *windowTitle;
-    int samples_per_pixel = 1;   // Strahlen pro Pixel (zufaellig im Pixel verteilt, Mittelwert), bei Path-Tracing viele (z.B. 64+)
-    int max_depth = 10;          // maximale Rekursionstiefe (Reflexionen, Brechungen, Bounces)
-    unsigned threads = 0;        // Anzahl der Threads, 0: alle Kerne
-    float exposure = 1.f;        // Helligkeitsfaktor, mit dem jede Pixelfarbe multipliziert wird
-    bool use_gpu = false;        // true: mit Metal auf der GPU rendern (nur macOS), sonst auf der CPU
+    int samples_per_pixel = 1;   // Sehstrahlen pro Pixel, zufaellig im Pixel verteilt, die Farben werden gemittelt
 
     // Konstruktor, Deklaration
     Window(const char *title, float w, World* world)
@@ -35,7 +31,7 @@ public:
         this->viewport = new Viewport(*cam, this->width, this->height);
     }
 
-    // wie oben, aber mit frei waehlbarer Hoehe (das Seitenverhaeltnis ergibt sich aus Breite und Hoehe)
+    // wie oben, aber mit frei waehlbarer Hoehe (z.B. 1024 x 768)
     Window(const char *title, float w, float h, World* world) : Window(title, w, world)
     {
         this->height = h < 1 ? 1 : h;
@@ -44,10 +40,9 @@ public:
         this->viewport = new Viewport(*cam, this->width, this->height);
     }
 
-    // Rendert das Bild und speichert es als BMP. Gibt 1 bei Erfolg und -1 bei einem Schreibfehler zurueck.
+    // Rendert das Bild und schreibt es als BMP-Datei. Gibt 1 bei Erfolg und -1 bei einem Fehler zurueck.
     int Run(const char *output_path = "raytracer.bmp");
     void Render();
-    bool RenderGpu();   // gleiches Bild wie Render(), berechnet auf der GPU mit Metal (gpu/metal_renderer.mm), false bei einem Fehler
 
     // Destruktor, Deklaration
     ~Window();

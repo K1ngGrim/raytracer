@@ -9,26 +9,20 @@
 
 namespace {
 
-// Material aus den Werten eines Eintrags der .mtl-Datei
+// Werte eines Eintrags der .mtl-Datei
 struct MtlEntry {
     color kd = {0.8f, 0.8f, 0.8f};
     color ks = {0.f, 0.f, 0.f};
-    color ke = {0.f, 0.f, 0.f};
-    float ni = 1.5f;
-    float d = 1.f;
     int illum = 2;
 };
 
+// illum 3 und 5: Spiegel (Farbe Ks), sonst diffus (Farbe Kd)
 Material to_material(const MtlEntry &e) {
-    if (std::max({e.ke[0], e.ke[1], e.ke[2]}) > 0.f)
-        return Material(e.ke, EMISSIVE, 1.f);
-    if (e.d < 1.f)
-        return Material(e.kd, GLASS, e.ni);
     if (e.illum == 3 || e.illum == 5) {
         bool no_specular = std::max({e.ks[0], e.ks[1], e.ks[2]}) <= 0.f;
-        return Material(no_specular ? color{1.f, 1.f, 1.f} : e.ks, REFLECTIVE);
+        return Material(no_specular ? color{1.f, 1.f, 1.f} : e.ks, 1);
     }
-    return Material(e.kd, LAMBERTIAN);
+    return Material(e.kd, 0);
 }
 
 std::string directory_of(const std::string &path) {
@@ -62,16 +56,6 @@ void load_mtl(const std::string &path, std::map<std::string, Material> &material
             in >> entry.kd[0] >> entry.kd[1] >> entry.kd[2];
         } else if (key == "Ks") {
             in >> entry.ks[0] >> entry.ks[1] >> entry.ks[2];
-        } else if (key == "Ke") {
-            in >> entry.ke[0] >> entry.ke[1] >> entry.ke[2];
-        } else if (key == "Ni") {
-            in >> entry.ni;
-        } else if (key == "d") {
-            in >> entry.d;
-        } else if (key == "Tr") {
-            float tr = 0.f;
-            in >> tr;
-            entry.d = 1.f - tr;
         } else if (key == "illum") {
             in >> entry.illum;
         }
