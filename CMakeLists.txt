@@ -8,7 +8,7 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-add_compile_options(-g -Wall -Wextra -Wpedantic -Wl,--stack,16777216)
+add_compile_options(-g -Wall -Wextra -Wpedantic)
 
 find_package(GTest REQUIRED)
 
@@ -20,5 +20,11 @@ target_link_libraries(math_test GTest::gtest GTest::gtest_main)
 
 add_executable(obj_loader_test utility/obj_loader_test.cc utility/obj_loader.cc math/math.cc geometry/geometry.cc world/world.cc world/objects/material.cc utility/color.cc utility/light.cc)
 target_link_libraries(obj_loader_test GTest::gtest GTest::gtest_main)
+
+add_executable(world_test world/world_test.cc world/world.cc world/objects/material.cc view/camera.cc math/math.cc geometry/geometry.cc utility/color.cc utility/light.cc)
+target_link_libraries(world_test GTest::gtest GTest::gtest_main)
+
+add_executable(bmp_test utility/bmp_test.cc utility/bmp.cc utility/color.cc math/math.cc)
+target_link_libraries(bmp_test GTest::gtest GTest::gtest_main)
 
 add_executable(raytracer raytracer.cc math/math.cc view/window.cc view/camera.cc view/viewport.cc utility/color.cc utility/bmp.cc utility/obj_loader.cc world/objects/material.cc utility/light.cc geometry/geometry.cc world/world.cc)

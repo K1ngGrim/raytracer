@@ -71,6 +71,22 @@ TEST(OBJ_LOADER, ReadsMaterialsFromMtlFile) {
   std::remove("test_materials.mtl");
 }
 
+// d < 1 macht das Material durchsichtig, die Farbe Kd spielt dann keine Rolle
+TEST(OBJ_LOADER, TransparentMaterialBecomesGlass) {
+  write_file("test_glass.mtl", "newmtl glass\nKd 0.3 0.3 0.3\nd 0.3   # durchsichtig\nNi 1.33\n");
+  write_file("test_glass.obj", "mtllib test_glass.mtl\nv 0 0 0\nv 1 0 0\nv 0 1 0\nusemtl glass\nf 1 2 3\n");
+  World world;
+  Vector3df bounds_min = {0.f, 0.f, 0.f}, bounds_max = {0.f, 0.f, 0.f};
+
+  ASSERT_TRUE( load_obj("test_glass.obj", world, bounds_min, bounds_max) );
+  ASSERT_EQ(1u, world.objects.size());
+  EXPECT_EQ(GLASS, world.objects[0].material.type);
+  EXPECT_NEAR(1.33f, world.objects[0].material.refractionIndex, 0.00001);
+  EXPECT_NEAR(1.0f, world.objects[0].material.materialColor[0], 0.00001);
+  std::remove("test_glass.obj");
+  std::remove("test_glass.mtl");
+}
+
 TEST(OBJ_LOADER, FailsForMissingFileOrEmptyScene) {
   World world;
   Vector3df bounds_min = {0.f, 0.f, 0.f}, bounds_max = {0.f, 0.f, 0.f};

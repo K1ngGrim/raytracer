@@ -1,10 +1,11 @@
 #include "material.h"
 
-Material::Material(color materialColor, int type) {
+Material::Material(color materialColor, int type, float refractionIndex) {
     this->materialColor = materialColor;
     this->type = type;
-    if(type < 0 || type > 1)
-        this->type = 0;
+    this->refractionIndex = refractionIndex;
+    if(type < LAMBERTIAN || type > GLASS)
+        this->type = LAMBERTIAN;
 }
 
 Material::Material(){}

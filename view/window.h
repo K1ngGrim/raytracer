@@ -19,6 +19,7 @@ public:
     float width, height;
     const char *windowTitle;
     int samples_per_pixel = 1;   // Sehstrahlen pro Pixel, zufaellig im Pixel verteilt, die Farben werden gemittelt
+    int max_depth = 5;           // maximale Rekursionstiefe fuer Reflexion und Brechung
 
     // Konstruktor, Deklaration
     Window(const char *title, float w, World* world)

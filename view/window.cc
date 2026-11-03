@@ -1,10 +1,20 @@
 #include "window.h"
 #include "../utility/bmp.h"
 #include "../math/math.h"
+#include <chrono>
 #include <cstdio>
 
 int Window::Run(const char *output_path) {
+    auto start = std::chrono::steady_clock::now();
     Render();
+    double render_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+
+    // Primaerstrahlen gehen alle in die Suche nach dem naechsten Objekt, der Rest davon sind Folgestrahlen
+    uint64_t primary = uint64_t(this->width) * uint64_t(this->height) * uint64_t(this->samples_per_pixel);
+    printf("TIME: render %.1f ms\n", render_ms);
+    printf("STATS: primary %llu, secondary %llu, shadow %llu, tests %llu\n",
+           (unsigned long long) primary, (unsigned long long) (world->nearest_queries - primary),
+           (unsigned long long) world->any_queries, (unsigned long long) world->intersection_tests);
 
     if (!save_bmp(output_path, int(this->width), int(this->height), this->pixels)) {
         printf("Error writing %s\n", output_path);
@@ -35,7 +45,7 @@ void Window::Render() {
                 Vector3df ray_direction = pixel_center - cam->camera_center;
                 Ray3df ray = {cam->camera_center, ray_direction};
 
-                p_color = p_color + cam->ray_color(ray, world, 10);
+                p_color = p_color + cam->ray_color(ray, world, this->max_depth);
             }
             p_color = p_color / float(samples);
 

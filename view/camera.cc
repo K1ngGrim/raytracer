@@ -1,32 +1,53 @@
 #include "camera.h"
+#include <algorithm>
+#include <cmath>
 #include <iostream>
 using namespace std;
 
+// Schlick-Naeherung: Anteil des Lichts, der an einer Glasoberflaeche reflektiert statt gebrochen wird
+static float schlick(float cosine, float refraction_index) {
+    float r0 = (1.f - refraction_index) / (1.f + refraction_index);
+    r0 = r0 * r0;
+    return r0 + (1.f - r0) * std::pow(1.f - cosine, 5.f);
+}
+
 color Camera::ray_color(Ray3df ray, World* world, int depth) {
+    if (depth <= 0)
+        return {0.f, 0.f, 0.f};
+
     Intersection_Context<float, 3> context;
     WorldObject* hit = world->find_nearest_object(ray, context);
     Light light = world->lights[0];
 
-    if (depth <= 0)
-        return {0.f, 0.f, 0.f};
-
     if(hit != nullptr) {
-        if(hit->material.type == 1) {
-            auto n_normal = context.normal;
-            auto n_incoming = ray.direction;
-            n_incoming.normalize();
-            auto v_reflection = n_incoming - 2 * (n_incoming * n_normal) * n_normal;
-            Ray3df reflection_ray = {context.intersection + (10.f * world->ray_bias * n_normal), v_reflection};
-            auto draw_color = (hit->material.materialColor);
-            return multiply(ray_color(reflection_ray, world, depth - 1), draw_color);
+        auto n_normal = context.normal;   // normiert, zeigt gegen den Strahl
+        auto n_incoming = ray.direction;
+        n_incoming.normalize();
+        auto v_reflection = n_incoming - 2 * (n_incoming * n_normal) * n_normal;
+        float bias = world->ray_bias;
+
+        if(hit->material.type == REFLECTIVE) {
+            Ray3df reflection_ray = {context.intersection + (10.f * bias * n_normal), v_reflection};
+            return multiply(ray_color(reflection_ray, world, depth - 1), hit->material.materialColor);
+        }else if(hit->material.type == GLASS) {
+            // Verhaeltnis der Brechungsindizes: Luft -> Glas beim Eintritt, Glas -> Luft beim Austritt
+            float refraction_index = hit->material.refractionIndex;
+            float eta = hit->ray_starts_inside(ray) ? refraction_index : 1.f / refraction_index;
+
+            Ray3df reflection_ray = {context.intersection + (bias * n_normal), v_reflection};
+            Vector3df v_refraction = {0.f, 0.f, 0.f};
+            if(!refract(eta, n_normal, n_incoming, v_refraction))   // Totalreflexion
+                return multiply(ray_color(reflection_ray, world, depth - 1), hit->material.materialColor);
+
+            // beide Strahlen verfolgen und nach Fresnel mischen
+            Ray3df refraction_ray = {context.intersection - (bias * n_normal), v_refraction};
+            float reflectance = schlick(std::min(-(n_incoming * n_normal), 1.f), refraction_index);
+            auto reflected_color = ray_color(reflection_ray, world, depth - 1);
+            auto refracted_color = ray_color(refraction_ray, world, depth - 1);
+            return multiply(reflectance * reflected_color + (1.f - reflectance) * refracted_color, hit->material.materialColor);
         }else {
             auto intensity = lambertian(world, light, context);
-
-            auto n_normal = context.normal; n_normal.normalize();
-            auto n_incoming = ray.direction; n_incoming.normalize();
-            auto reflection = n_incoming - 2*(n_incoming * n_normal) * n_normal;
             return multiply(intensity * hit->material.materialColor, light.lightColor);
-
         }
     }
 
@@ -108,23 +129,21 @@ float Camera::lambertian(World* world, Light light, Intersection_Context<float, 
     //L = kd ·~l max{0, cos Θ} = kd ·~l max{0, ~n ·~l}
     //Ben: color * max(0, n * l) alle vektoren normieren
 
-    //erstmal ohne schattenwurf von anderen objekten zwischen obj1 und licht;
-    //Vektor zum licht = lichtpunkt - intersection
+    // ambienter Anteil: gilt ueberall, auch im Schatten und auf der vom Licht abgewandten Seite.
+    // So gibt es keinen Sprung zwischen beschatteten und abgewandten Flaechen.
+    const float ambient = 0.1f;
 
     Vector3df toLight = (light.center - context.intersection);
-    Vector3df newStart = context.intersection + (world->ray_bias * context.normal);
-    Ray3df newRay = {newStart, toLight};
-    Intersection_Context<float, 3> c{};
-    world->find_nearest_object(newRay, c);
+    Vector3df n_toLight = toLight;
+    n_toLight.normalize();
+    float cos_theta = context.normal * n_toLight;
+    if(cos_theta <= 0.f)
+        return ambient;   // Flaeche zeigt vom Licht weg, kein Schattenstrahl noetig
 
-    if(c.t > 0.f && c.t < 1.f)
-        return 0.1f;
+    // Schattenstrahl: toLight ist nicht normiert, das Licht liegt also bei t = 1
+    Ray3df shadowRay = {context.intersection + (world->ray_bias * context.normal), toLight};
+    if(world->ray_intersects_any(shadowRay, 1.f))
+        return ambient;
 
-    toLight.normalize();
-
-    return (max(0.f, context.normal * toLight));
-
+    return ambient + (1.f - ambient) * cos_theta;
 }
-
-
-

@@ -17,7 +17,8 @@
  * Ohne Vertexnormalen wird die Normale des Dreiecks verwendet.
  *
  * Materialien kommen aus der mit mtllib angegebenen .mtl-Datei und werden mit usemtl ausgewaehlt:
- * die Farbe ist Kd, bei illum 3 oder 5 ist das Material ein Spiegel (Farbe Ks), sonst ist es diffus.
+ * bei d < 1 (oder Tr > 0) ist das Material Glas mit dem Brechungsindex Ni, bei illum 3 oder 5 ein Spiegel
+ * (Farbe Ks), sonst ist es diffus (Farbe Kd).
  * Ohne Angabe gilt default_material.
  *
  * @param path             Pfad der .obj-Datei

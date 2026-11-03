@@ -16,6 +16,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <chrono>
 
 using namespace std;
 
@@ -81,28 +82,29 @@ using namespace std;
 
 Camera* cam;
 
-// Kommandozeile: raytracer [scene.obj] [-w breite] [-h hoehe] [-s sehstrahlen_pro_pixel] [--badouel] [-o ausgabe.bmp]
+// Kommandozeile: raytracer [scene.obj] [-w breite] [-h hoehe] [-s sehstrahlen_pro_pixel] [-d tiefe] [--badouel] [-o ausgabe.bmp]
 //   ohne scene.obj wird die Szene aus Kugeln gerendert
 //   --badouel: Dreiecke mit Badouel statt Moeller-Trumbore schneiden
 int main(int argc, char** argv) {
     std::string scene_file;
     std::string output = "raytracer.bmp";
-    int width = 1280, height = 720, samples = 1;
+    int width = 1280, height = 720, samples = 1, depth = 5;
     bool badouel = false;
 
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "-w") == 0 && i + 1 < argc)         width = atoi(argv[++i]);
         else if (strcmp(argv[i], "-h") == 0 && i + 1 < argc)    height = atoi(argv[++i]);
         else if (strcmp(argv[i], "-s") == 0 && i + 1 < argc)    samples = atoi(argv[++i]);
+        else if (strcmp(argv[i], "-d") == 0 && i + 1 < argc)    depth = atoi(argv[++i]);
         else if (strcmp(argv[i], "-o") == 0 && i + 1 < argc)    output = argv[++i];
         else if (strcmp(argv[i], "--badouel") == 0)             badouel = true;
         else if (argv[i][0] != '-' && scene_file.empty())       scene_file = argv[i];
         else {
-            printf("Usage: raytracer [scene.obj] [-w width] [-h height] [-s samples] [--badouel] [-o output.bmp]\n");
+            printf("Usage: raytracer [scene.obj] [-w width] [-h height] [-s samples] [-d depth] [--badouel] [-o output.bmp]\n");
             return 1;
         }
     }
-    if (width < 1 || height < 1 || samples < 1 || !bmp_fits(width, height)) {
+    if (width < 1 || height < 1 || samples < 1 || depth < 1 || !bmp_fits(width, height)) {
         printf("Invalid image size or number of samples\n");
         return 1;
     }
@@ -110,6 +112,7 @@ int main(int argc, char** argv) {
     auto world = new World();
     auto win = new Window("Raytracer", float(width), float(height), world);
     win->samples_per_pixel = samples;
+    win->max_depth = depth;
     world->moeller_trumbore = !badouel;
 
     if (scene_file.empty()) {
@@ -134,27 +137,35 @@ int main(int argc, char** argv) {
     world->add(obj7);
     } else {
         // Szene aus einer Wavefront-Datei. Kamera und Lichtquelle gehoeren nicht zu Wavefront und werden hier
-        // aus dem Quader um die Szene bestimmt: die Kamera blickt wie immer in -z und steht vor der Szene.
+        // aus dem Quader um die Szene bestimmt. Sie haengen damit nur von der Szene ab und bleiben fuer
+        // alle Zeitmessungen gleich.
         Vector3df bounds_min = {0.f, 0.f, 0.f}, bounds_max = {0.f, 0.f, 0.f};
+        auto load_start = std::chrono::steady_clock::now();
         if (!load_obj(scene_file, *world, bounds_min, bounds_max))
             return 1;
+        double load_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - load_start).count();
+        printf("TIME: load %.1f ms\n", load_ms);
 
         Vector3df center = 0.5f * (bounds_min + bounds_max);
         Vector3df extent = bounds_max - bounds_min;
         float radius = 0.5f * std::max({extent[0], extent[1], extent[2]});
         world->ray_bias = 1e-4f * extent.length();
 
-        // Kamera: schraeg von vorne oben (30 Grad ueber der Horizontalen) im Abstand, in dem die Szene ins Bild passt
+        // Kamera: von der Seite mit negativem z, 30 Grad ueber der Horizontalen, im Abstand, in dem die Szene ins Bild passt.
+        // In der Testszene stehen die drei Toepfe auf dieser Seite vor der Teekanne.
         float fov = 40.f;
         win->cam->set_fov(fov);
         float distance = 1.05f * radius / std::sin(fov * float(M_PI) / 360.f);
-        Vector3df direction = {0.f, std::sin(30.f * float(M_PI) / 180.f), std::cos(30.f * float(M_PI) / 180.f)};
+        Vector3df direction = {0.f, std::sin(30.f * float(M_PI) / 180.f), -std::cos(30.f * float(M_PI) / 180.f)};
         win->cam->camera_center = center + distance * direction;
         win->cam->look_at(center);
 
         // Lichtquelle: oben, etwas vor und neben der Szene
-        PointLight light = PointLight(center + Vector3df{0.3f * radius, 1.2f * radius, 0.6f * radius});
+        PointLight light = PointLight(center + Vector3df{0.3f * radius, 1.2f * radius, -0.6f * radius});
         world->lights.push_back(light);
+        printf("DEBUG: camera (%.3f, %.3f, %.3f), look at (%.3f, %.3f, %.3f), light (%.3f, %.3f, %.3f)\n",
+               win->cam->camera_center[0], win->cam->camera_center[1], win->cam->camera_center[2],
+               center[0], center[1], center[2], light.center[0], light.center[1], light.center[2]);
     }
 
     return win->Run(output.c_str()) == 1 ? 0 : 1;

@@ -8,8 +8,29 @@ void World::add(WorldObject s)
     this->objects.push_back(s);
 }
 
-bool World::ray_intersects_any(Ray3df ray, Intersection_Context<float, 3> context) {
+bool World::ray_intersects_any(Ray3df ray, float max_t) {
+    Intersection_Context<float, 3> context{};
+    ++this->any_queries;
 
+    for(size_t i = 0; i < this->objects.size(); ++i) {
+        const WorldObject & obj = this->objects[i];
+        bool intersects;
+        if(obj.is_triangle) {
+            if(this->moeller_trumbore)
+                intersects = obj.triangle.intersects_moeller_trumbore(ray, context);
+            else
+                intersects = obj.triangle.intersects(ray, context);
+        } else {
+            intersects = obj.sphere.intersects(ray, context);
+        }
+
+        if(intersects && context.t > 0.f && context.t < max_t) {
+            this->intersection_tests += i + 1;
+            return true;
+        }
+    }
+    this->intersection_tests += this->objects.size();
+    return false;
 }
 
 WorldObject World::get(int index) 
@@ -22,6 +43,8 @@ WorldObject* World::find_nearest_object(Ray3df ray, Intersection_Context<float, 
     float t = std::numeric_limits<float>::max();
 
     if(this->objects.empty()) return nullptr;
+    ++this->nearest_queries;
+    this->intersection_tests += this->objects.size();
 
     WorldObject* nearest = nullptr;
     for(WorldObject & obj: this->objects) {
@@ -83,4 +106,13 @@ Vector3df WorldObject::shading_normal(Ray3df ray, Intersection_Context<float, 3>
     if(geometric * ray.direction > 0.f)   // Normale zeigt gegen den Strahl
         normal = -1.f * normal;
     return normal;
+}
+
+bool WorldObject::ray_starts_inside(Ray3df ray) const {
+    if(!this->is_triangle)
+        return this->sphere.inside(ray.origin);
+
+    // die Dreiecke eines geschlossenen Koerpers sind so orientiert, dass (b - a) x (c - a) nach aussen zeigt
+    Vector3df outward = (this->triangle.get_b() - this->triangle.get_a()).cross_product(this->triangle.get_c() - this->triangle.get_a());
+    return outward * ray.direction > 0.f;
 }
