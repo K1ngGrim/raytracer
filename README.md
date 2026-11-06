@@ -4,7 +4,7 @@ Whitted-Raytracer in C++20 für die Rechnerübung zur Vorlesung Optimierung (HKA
 
 ## Bauen
 
-Voraussetzungen sind CMake ab 3.9, ein C++20-Compiler und GoogleTest für die Tests.
+Voraussetzungen sind CMake ab 3.10, ein C++20-Compiler und GoogleTest für die Tests.
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -61,10 +61,10 @@ Dieselbe Szene mit Badouel:
 Neben dem Fortschritt gibt das Programm Zeiten und Zähler aus. Das Messskript liest diese Zeilen aus.
 
 ```
-TIME: load 24.0 ms
+TIME: load 22.5 ms
 DEBUG: camera (0.000, 8.470, -12.021), look at (0.000, 1.529, 0.000), light (1.356, 6.955, -2.713)
-TIME: render 16790.0 ms
-STATS: primary 76800, secondary 18794, shadow 24398, tests 2132321050
+TIME: render 18645.3 ms
+STATS: primary 76800, secondary 20988, shadow 37246, tests 2312686972
 DEBUG: Image saved as teapot.bmp
 ```
 
@@ -72,22 +72,25 @@ DEBUG: Image saved as teapot.bmp
 
 ## Wavefront-Import
 
-Gelesen werden `v`, `vn`, `f`, `mtllib` und `usemtl`. Flächen dürfen in den Formen `v`, `v/vt`, `v//vn` und `v/vt/vn` angegeben sein, auch mit negativen Indizes. Polygone werden in Dreiecke zerlegt. Aus der Materialdatei werden diese Werte ausgewertet:
+Gelesen werden `v`, `vn`, `f`, `mtllib` und `usemtl`. Flächen dürfen in den Formen `v`, `v/vt`, `v//vn` und `v/vt/vn` angegeben sein, auch mit negativen Indizes. Polygone werden in Dreiecke zerlegt. Das Schnittverfahren (`--badouel`) wird beim Einlesen festgelegt, jedes Dreieck ist danach ein Objekt der passenden Unterklasse. Aus der Materialdatei werden diese Werte ausgewertet:
 
 | Wert | Wirkung |
 |---|---|
-| `Kd` | Farbe diffuser Materialien |
-| `Ks` | Farbe spiegelnder Materialien |
-| `illum` 3 oder 5 | Material spiegelt |
-| `d` < 1 oder `Tr` > 0 | Material ist Glas |
-| `Ni` | Brechungsindex von Glas (Voreinstellung 1,5) |
+| `Ka` | ambiente Farbe, gilt überall (Voreinstellung 0,1) |
+| `Kd` | diffuse Farbe nach Lambert |
+| `Ks` | Stärke des Glanzlichts nach Phong und Gewicht des gespiegelten Strahls |
+| `Ns` | Exponent des Glanzlichts |
+| `d` oder `Tr` | Deckkraft der Oberfläche: `Ka`, `Kd` und Glanzlicht zählen mit `d`, der gebrochene Strahl mit `1 - d` |
+| `Ni` | Brechungsindex (Voreinstellung 1,5) |
+
+`illum` wird nicht ausgewertet. Ob ein Material spiegelt, ergibt sich allein aus `Ks`.
 
 ## Tests
 
-Jede Testdatei ist ein eigenes Programm mit GoogleTest: `math_test`, `geometry_test`, `obj_loader_test`, `world_test` und `bmp_test`. Alle zusammen:
+Jede Testdatei ist ein eigenes Programm mit GoogleTest: `math_test`, `geometry_test`, `scene_test`, `render_test`, `obj_loader_test` und `bmp_test`. Alle zusammen:
 
 ```bash
-for t in math_test geometry_test obj_loader_test world_test bmp_test; do ./build/$t || break; done
+for t in math_test geometry_test scene_test render_test obj_loader_test bmp_test; do ./build/$t || break; done
 ```
 
 ## Messungen und Bericht
@@ -108,10 +111,10 @@ typst compile bericht/main.typ bericht/bericht.pdf
 
 | Verzeichnis | Inhalt |
 |---|---|
-| `math/` | Vektorklasse `Vector<F, N>` |
-| `geometry/` | Strahl, Kugel, Dreieck und Box mit ihren Schnitttests |
-| `world/` | Szene (`World`), Objekte und Materialien, Suche nach dem nächsten Treffer und Schattentest |
-| `view/` | Kamera, Bildebene und Fenster mit der Schleife über alle Pixel |
-| `utility/` | Wavefront-Import, BMP-Ausgabe, Farben und Licht |
+| `math/` | Vektorklasse `Vector<F, N>` und Farben |
+| `geometry/` | Strahl, Kugel, Dreieck und Box mit ihren Schnitttests (aus dem Labor) |
+| `scene/` | `Scene` mit Objekten, Materialien und Lichtquellen sowie den Suchen `nearest_hit` und `any_hit`. Objekte sind Unterklassen von `SceneObject`, die Schnittverfahren `MoellerTrumboreTriangle` und `BadouelTriangle` überschreiben `intersects`. |
+| `render/` | `Camera` (Sehstrahl je Bildstelle), `Shader` (Beleuchtung nach Whitted, Rekursion) und `Renderer` (Schleife über die Pixel) |
+| `io/` | Wavefront-Import und BMP-Ausgabe |
 | `scenes/` | Testszene `teapot_n_glass` |
-| `bericht/` | Projektbericht und Messskript |
+| `bericht/` | Projektbericht, Messskript und Klassendiagramm (`bericht/uml/klassen.puml`) |

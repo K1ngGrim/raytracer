@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.9)
+cmake_minimum_required (VERSION 3.10)
 project (raytracer)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -12,19 +12,28 @@ add_compile_options(-g -Wall -Wextra -Wpedantic)
 
 find_package(GTest REQUIRED)
 
+# math: Vektoren und Farben, geometry: Strahl, Kugel, Dreieck, scene: Objekte, Materialien, Licht und Suchen,
+# render: Kamera, Beleuchtung und Schleife ueber die Pixel, io: Wavefront-Import und BMP-Ausgabe
+set(MATH_SOURCES math/math.cc math/color.cc)
+set(SCENE_SOURCES ${MATH_SOURCES} geometry/geometry.cc scene/material.cc scene/scene_object.cc scene/scene.cc)
+set(RENDER_SOURCES ${SCENE_SOURCES} render/camera.cc render/shader.cc render/renderer.cc)
+
+add_executable(math_test math/math_test.cc ${MATH_SOURCES})
+target_link_libraries(math_test GTest::gtest GTest::gtest_main)
+
 add_executable(geometry_test geometry/geometry_test.cc math/math.cc geometry/geometry.cc)
 target_link_libraries(geometry_test GTest::gtest GTest::gtest_main)
 
-add_executable(math_test math/math_test.cc math/math.cc)
-target_link_libraries(math_test GTest::gtest GTest::gtest_main)
+add_executable(scene_test scene/scene_test.cc ${SCENE_SOURCES})
+target_link_libraries(scene_test GTest::gtest GTest::gtest_main)
 
-add_executable(obj_loader_test utility/obj_loader_test.cc utility/obj_loader.cc math/math.cc geometry/geometry.cc world/world.cc world/objects/material.cc utility/color.cc utility/light.cc)
+add_executable(render_test render/render_test.cc ${RENDER_SOURCES})
+target_link_libraries(render_test GTest::gtest GTest::gtest_main)
+
+add_executable(obj_loader_test io/obj_loader_test.cc io/obj_loader.cc ${SCENE_SOURCES})
 target_link_libraries(obj_loader_test GTest::gtest GTest::gtest_main)
 
-add_executable(world_test world/world_test.cc world/world.cc world/objects/material.cc view/camera.cc math/math.cc geometry/geometry.cc utility/color.cc utility/light.cc)
-target_link_libraries(world_test GTest::gtest GTest::gtest_main)
-
-add_executable(bmp_test utility/bmp_test.cc utility/bmp.cc utility/color.cc math/math.cc)
+add_executable(bmp_test io/bmp_test.cc io/bmp.cc ${MATH_SOURCES})
 target_link_libraries(bmp_test GTest::gtest GTest::gtest_main)
 
-add_executable(raytracer raytracer.cc math/math.cc view/window.cc view/camera.cc view/viewport.cc utility/color.cc utility/bmp.cc utility/obj_loader.cc world/objects/material.cc utility/light.cc geometry/geometry.cc world/world.cc)
+add_executable(raytracer raytracer.cc io/obj_loader.cc io/bmp.cc ${RENDER_SOURCES})

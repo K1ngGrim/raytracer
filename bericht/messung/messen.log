@@ -1,124 +1,34 @@
-CMake Deprecation Warning at CMakeLists.txt:1 (cmake_minimum_required):
-  Compatibility with CMake < 3.10 will be removed from a future version of
-  CMake.
-
-  Update the VERSION argument <min> value.  Or, use the <min>...<max> syntax
-  to tell CMake that the project requires at least <min> but has been updated
-  to work with policies introduced by <max> or earlier.
-
-
-/Users/flori/Documents/Workspace/raytracer/math/math.cc:8:10: warning: class template 'Vector' was previously declared as a struct template; this is valid, but may result in linker errors under the Microsoft C++ ABI [-Wmismatched-tags]
-    8 | template class Vector<float, 2u>;
-      |          ^
-/Users/flori/Documents/Workspace/raytracer/math/math.h:12:8: note: previous use is here
-   12 | struct Vector {
-      |        ^
-/Users/flori/Documents/Workspace/raytracer/math/math.cc:8:10: note: did you mean struct here?
-    8 | template class Vector<float, 2u>;
-      |          ^~~~~
-      |          struct
-/Users/flori/Documents/Workspace/raytracer/math/math.cc:9:10: warning: class template 'Vector' was previously declared as a struct template; this is valid, but may result in linker errors under the Microsoft C++ ABI [-Wmismatched-tags]
-    9 | template class Vector<float, 3u>; 
-      |          ^
-/Users/flori/Documents/Workspace/raytracer/math/math.h:12:8: note: previous use is here
-   12 | struct Vector {
-      |        ^
-/Users/flori/Documents/Workspace/raytracer/math/math.cc:9:10: note: did you mean struct here?
-    9 | template class Vector<float, 3u>; 
-      |          ^~~~~
-      |          struct
-/Users/flori/Documents/Workspace/raytracer/math/math.cc:10:10: warning: class template 'Vector' was previously declared as a struct template; this is valid, but may result in linker errors under the Microsoft C++ ABI [-Wmismatched-tags]
-   10 | template class Vector<float, 4u>;
-      |          ^
-/Users/flori/Documents/Workspace/raytracer/math/math.h:12:8: note: previous use is here
-   12 | struct Vector {
-      |        ^
-/Users/flori/Documents/Workspace/raytracer/math/math.cc:10:10: note: did you mean struct here?
-   10 | template class Vector<float, 4u>;
-      |          ^~~~~
-      |          struct
-3 warnings generated.
-/Users/flori/Documents/Workspace/raytracer/geometry/geometry.cc:4:10: warning: class template 'Intersection_Context' was previously declared as a struct template; this is valid, but may result in linker errors under the Microsoft C++ ABI [-Wmismatched-tags]
-    4 | template class Intersection_Context<float,3u>;
-      |          ^
-/Users/flori/Documents/Workspace/raytracer/geometry/geometry.h:20:8: note: previous use is here
-   20 | struct Intersection_Context {
-      |        ^
-/Users/flori/Documents/Workspace/raytracer/geometry/geometry.cc:4:10: note: did you mean struct here?
-    4 | template class Intersection_Context<float,3u>;
-      |          ^~~~~
-      |          struct
-/Users/flori/Documents/Workspace/raytracer/geometry/geometry.cc:6:10: warning: class template 'Ray' was previously declared as a struct template; this is valid, but may result in linker errors under the Microsoft C++ ABI [-Wmismatched-tags]
-    6 | template class Ray<float, 2u>;
-      |          ^
-/Users/flori/Documents/Workspace/raytracer/geometry/geometry.h:13:8: note: previous use is here
-   13 | struct Ray {
-      |        ^
-/Users/flori/Documents/Workspace/raytracer/geometry/geometry.cc:6:10: note: did you mean struct here?
-    6 | template class Ray<float, 2u>;
-      |          ^~~~~
-      |          struct
-/Users/flori/Documents/Workspace/raytracer/geometry/geometry.cc:7:10: warning: class template 'Ray' was previously declared as a struct template; this is valid, but may result in linker errors under the Microsoft C++ ABI [-Wmismatched-tags]
-    7 | template class Ray<float, 3u>; 
-      |          ^
-/Users/flori/Documents/Workspace/raytracer/geometry/geometry.h:13:8: note: previous use is here
-   13 | struct Ray {
-      |        ^
-/Users/flori/Documents/Workspace/raytracer/geometry/geometry.cc:7:10: note: did you mean struct here?
-    7 | template class Ray<float, 3u>; 
-      |          ^~~~~
-      |          struct
-In file included from /Users/flori/Documents/Workspace/raytracer/geometry/geometry.cc:2:
-/Users/flori/Documents/Workspace/raytracer/geometry/geometry.tcc:12:19: warning: use of bitwise '&' with boolean operands [-Wbitwise-instead-of-logical]
-   12 |     intersects &= (center[i] - half_edge_length[i] - aabb.half_edge_length[i] <= aabb.center[i]) 
-      |                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   13 |                      & (aabb.center[i] <= center[i] + half_edge_length[i] + aabb.half_edge_length[i]);
-      |                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-      |                      &&
-/Users/flori/Documents/Workspace/raytracer/geometry/geometry.cc:9:16: note: in instantiation of member function 'AxisAlignedBoundingBox<float, 2>::intersects' requested here
-    9 | template class AxisAlignedBoundingBox<float, 2u>;
-      |                ^
-/Users/flori/Documents/Workspace/raytracer/geometry/geometry.tcc:12:19: note: cast one or both operands to int to silence this warning
-   12 |     intersects &= (center[i] - half_edge_length[i] - aabb.half_edge_length[i] <= aabb.center[i]) 
-      |                   ^
-/Users/flori/Documents/Workspace/raytracer/geometry/geometry.tcc:12:19: warning: use of bitwise '&' with boolean operands [-Wbitwise-instead-of-logical]
-   12 |     intersects &= (center[i] - half_edge_length[i] - aabb.half_edge_length[i] <= aabb.center[i]) 
-      |                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   13 |                      & (aabb.center[i] <= center[i] + half_edge_length[i] + aabb.half_edge_length[i]);
-      |                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-      |                      &&
-/Users/flori/Documents/Workspace/raytracer/geometry/geometry.cc:10:16: note: in instantiation of member function 'AxisAlignedBoundingBox<float, 3>::intersects' requested here
-   10 | template class AxisAlignedBoundingBox<float, 3u>; 
-      |                ^
-/Users/flori/Documents/Workspace/raytracer/geometry/geometry.tcc:12:19: note: cast one or both operands to int to silence this warning
-   12 |     intersects &= (center[i] - half_edge_length[i] - aabb.half_edge_length[i] <= aabb.center[i]) 
-      |                   ^
-5 warnings generated.
-mt 160x120 s1 Lauf 1: 4176.1 ms
-mt 160x120 s1 Lauf 2: 4504.9 ms
-mt 160x120 s1 Lauf 3: 4246.6 ms
-badouel 160x120 s1 Lauf 1: 17585.7 ms
-badouel 160x120 s1 Lauf 2: 17126.9 ms
-badouel 160x120 s1 Lauf 3: 16958.2 ms
-mt 320x240 s1 Lauf 1: 16687.3 ms
-mt 320x240 s1 Lauf 2: 16787.9 ms
-mt 320x240 s1 Lauf 3: 16876.1 ms
-badouel 320x240 s1 Lauf 1: 67910.0 ms
-badouel 320x240 s1 Lauf 2: 67804.5 ms
-badouel 320x240 s1 Lauf 3: 67893.0 ms
-mt 640x480 s1 Lauf 1: 67452.6 ms
-mt 640x480 s1 Lauf 2: 68497.2 ms
-mt 640x480 s1 Lauf 3: 67415.8 ms
-badouel 640x480 s1 Lauf 1: 272163.2 ms
-badouel 640x480 s1 Lauf 2: 272471.9 ms
-badouel 640x480 s1 Lauf 3: 272394.4 ms
-mt 320x240 s4 Lauf 1: 67257.9 ms
-mt 320x240 s4 Lauf 2: 67211.7 ms
-mt 320x240 s4 Lauf 3: 67466.0 ms
-mt 320x240 s8 Lauf 1: 134534.5 ms
-mt 320x240 s8 Lauf 2: 134400.6 ms
-mt 320x240 s8 Lauf 3: 134337.3 ms
-mt 320x240 s16 Lauf 1: 268914.8 ms
-mt 320x240 s16 Lauf 2: 269527.6 ms
-mt 320x240 s16 Lauf 3: 269403.1 ms
+mt 160x120 s1 Lauf 1: 4655.0 ms
+mt 160x120 s1 Lauf 2: 4670.3 ms
+mt 160x120 s1 Lauf 3: 4679.4 ms
+badouel 160x120 s1 Lauf 1: 9183.3 ms
+badouel 160x120 s1 Lauf 2: 9183.3 ms
+badouel 160x120 s1 Lauf 3: 9180.8 ms
+mt 320x240 s1 Lauf 1: 18645.3 ms
+mt 320x240 s1 Lauf 2: 19538.5 ms
+mt 320x240 s1 Lauf 3: 19936.1 ms
+badouel 320x240 s1 Lauf 1: 38864.8 ms
+badouel 320x240 s1 Lauf 2: 38738.0 ms
+badouel 320x240 s1 Lauf 3: 38785.7 ms
+mt 640x480 s1 Lauf 1: 76230.3 ms
+mt 640x480 s1 Lauf 2: 76043.0 ms
+mt 640x480 s1 Lauf 3: 85802.4 ms
+badouel 640x480 s1 Lauf 1: 152391.5 ms
+badouel 640x480 s1 Lauf 2: 148120.9 ms
+badouel 640x480 s1 Lauf 3: 147514.5 ms
+mt 320x240 s4 Lauf 1: 75200.3 ms
+mt 320x240 s4 Lauf 2: 75202.8 ms
+mt 320x240 s4 Lauf 3: 75213.4 ms
+mt 320x240 s8 Lauf 1: 150473.2 ms
+mt 320x240 s8 Lauf 2: 163273.6 ms
+mt 320x240 s8 Lauf 3: 150549.7 ms
+mt 320x240 s16 Lauf 1: 306525.6 ms
+mt 320x240 s16 Lauf 2: 301035.9 ms
+mt 320x240 s16 Lauf 3: 300946.5 ms
+160x120: 0 Pixel, 0 mit max. 1 Stufe; groessere Abweichungen:
+320x240: 8 Pixel, 8 mit max. 1 Stufe; groessere Abweichungen:
+640x480: 19 Pixel, 16 mit max. 1 Stufe; groessere Abweichungen:
+   (204, 439) max 230 mt=(237, 244, 255) badouel=(25, 25, 25)
+   (213, 331) max 2 mt=(82, 82, 82) badouel=(84, 84, 84)
+   (390, 216) max 3 mt=(25, 25, 25) badouel=(28, 26, 26)
 fertig: /Users/flori/Documents/Workspace/raytracer/bericht/messung/messungen.csv

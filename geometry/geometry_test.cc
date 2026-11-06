@@ -450,8 +450,8 @@ TEST(TRIANGLE, MoellerTrumbore_Miss) {
   EXPECT_FALSE( triangle.intersects_moeller_trumbore(Ray3df{ {1.0, 1.0, 2.0}, {1.0, 0.0, 0.0} }, context) );  // parallel to the triangle
 }
 
-// Moeller-Trumbore must give the same result as the (Badouel) intersects() for arbitrary rays
-TEST(TRIANGLE, MoellerTrumboreEqualsBadouel) {
+// Moeller-Trumbore must give the same result as the cross product test intersects() for arbitrary rays
+TEST(TRIANGLE, MoellerTrumboreEqualsCrossProductTest) {
   uint32_t state = 12345u;
   auto rnd = [&state](float min, float max) {
     state = state * 1664525u + 1013904223u;
@@ -462,19 +462,19 @@ TEST(TRIANGLE, MoellerTrumboreEqualsBadouel) {
   for (int i = 0; i < 20000; ++i) {
     Triangle3df triangle = { {rnd(-5,5), rnd(-5,5), rnd(-5,5)}, {rnd(-5,5), rnd(-5,5), rnd(-5,5)}, {rnd(-5,5), rnd(-5,5), rnd(-5,5)} };
     Ray3df ray{ {rnd(-8,8), rnd(-8,8), rnd(-8,8)}, {rnd(-1,1), rnd(-1,1), rnd(-1,1)} };
-    Intersection_Context<float,3u> badouel{}, moeller{};
+    Intersection_Context<float,3u> cross{}, moeller{};
 
-    bool hit_badouel = triangle.intersects(ray, badouel);
+    bool hit_cross = triangle.intersects(ray, cross);
     bool hit_moeller = triangle.intersects_moeller_trumbore(ray, moeller);
 
-    ASSERT_EQ(hit_badouel, hit_moeller) << "ray/triangle " << i;
-    if (hit_badouel) {
+    ASSERT_EQ(hit_cross, hit_moeller) << "ray/triangle " << i;
+    if (hit_cross) {
       ++hits;
-      EXPECT_NEAR(badouel.t, moeller.t, 0.001f * (1.0f + badouel.t));
-      EXPECT_NEAR(badouel.u, moeller.u, 0.001f);
-      EXPECT_NEAR(badouel.v, moeller.v, 0.001f);
+      EXPECT_NEAR(cross.t, moeller.t, 0.001f * (1.0f + cross.t));
+      EXPECT_NEAR(cross.u, moeller.u, 0.001f);
+      EXPECT_NEAR(cross.v, moeller.v, 0.001f);
       for (size_t k = 0; k < 3; ++k) {
-        EXPECT_NEAR(badouel.normal[k], moeller.normal[k], 0.001f * (1.0f + fabs(badouel.normal[k])));
+        EXPECT_NEAR(cross.normal[k], moeller.normal[k], 0.001f * (1.0f + fabs(cross.normal[k])));
       }
       // the normal must be perpendicular to the triangle's edges
       Vector3df e1 = triangle.get_b() - triangle.get_a(), e2 = triangle.get_c() - triangle.get_a();

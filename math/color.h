@@ -1,7 +1,7 @@
 #ifndef COLOR_H
 #define COLOR_H
 
-#include "./../math/math.h"
+#include "math.h"
 #include <cstdint>
 #include <vector>
 

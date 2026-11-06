@@ -9,26 +9,9 @@
 
 namespace {
 
-// Werte eines Eintrags der .mtl-Datei
-struct MtlEntry {
-    color kd = {0.8f, 0.8f, 0.8f};
-    color ks = {0.f, 0.f, 0.f};
-    float ni = 1.5f;   // Brechungsindex
-    float d = 1.f;     // Deckkraft, 1 = undurchsichtig
-    int illum = 2;
-};
-
-// d < 1: Glas (Brechungsindex Ni, ungefaerbt), illum 3 und 5: Spiegel (Farbe Ks), sonst diffus (Farbe Kd)
-Material to_material(const MtlEntry &e) {
-    if (e.d < 1.f)
-        return Material({1.f, 1.f, 1.f}, GLASS, e.ni);
-    if (e.illum == 3 || e.illum == 5) {
-        bool no_specular = std::max({e.ks[0], e.ks[1], e.ks[2]}) <= 0.f;
-        return Material(no_specular ? color{1.f, 1.f, 1.f} : e.ks, 1);
-    }
-    return Material(e.kd, 0);
-}
-
+// Materialwerte der .mtl-Datei. d ist die Deckkraft, 1 - d der durchsichtige Anteil.
+// Ka, Kd, Ks, Ns und Ni werden unveraendert uebernommen. illum wird nicht ausgewertet, ob ein Material
+// spiegelt, ergibt sich allein aus Ks.
 std::string directory_of(const std::string &path) {
     size_t slash = path.find_last_of("/\\");
     return slash == std::string::npos ? std::string() : path.substr(0, slash + 1);
@@ -42,9 +25,10 @@ void load_mtl(const std::string &path, std::map<std::string, Material> &material
     }
 
     std::string name;
-    MtlEntry entry;
+    Material entry;
     bool open = false;
-    auto finish = [&]() { if (open) materials[name] = to_material(entry); };
+    auto finish = [&]() { if (open) materials[name] = entry; };
+    auto read_color = [](std::istringstream &in, color &target) { in >> target[0] >> target[1] >> target[2]; };
 
     std::string line;
     while (std::getline(file, line)) {
@@ -53,23 +37,25 @@ void load_mtl(const std::string &path, std::map<std::string, Material> &material
         in >> key;
         if (key == "newmtl") {
             finish();
-            entry = MtlEntry();
+            entry = Material();
             in >> name;
             open = true;
+        } else if (key == "Ka") {
+            read_color(in, entry.ambient);
         } else if (key == "Kd") {
-            in >> entry.kd[0] >> entry.kd[1] >> entry.kd[2];
+            read_color(in, entry.diffuse);
         } else if (key == "Ks") {
-            in >> entry.ks[0] >> entry.ks[1] >> entry.ks[2];
+            read_color(in, entry.specular);
+        } else if (key == "Ns") {
+            in >> entry.shininess;
         } else if (key == "Ni") {
-            in >> entry.ni;
+            in >> entry.refraction_index;
         } else if (key == "d") {
-            in >> entry.d;
+            float d = 1.f;
+            in >> d;
+            entry.transparency = 1.f - d;
         } else if (key == "Tr") {
-            float tr = 0.f;
-            in >> tr;
-            entry.d = 1.f - tr;
-        } else if (key == "illum") {
-            in >> entry.illum;
+            in >> entry.transparency;
         }
     }
     finish();
@@ -105,7 +91,8 @@ long resolve_index(long index, size_t count) {
 
 }
 
-bool load_obj(const std::string &path, World &world, Vector3df &bounds_min, Vector3df &bounds_max, Material default_material) {
+bool load_obj(const std::string &path, Scene &scene, TriangleMethod method, Vector3df &bounds_min, Vector3df &bounds_max,
+              Material default_material) {
     std::ifstream file(path);
     if (!file) {
         printf("Error: cannot open %s\n", path.c_str());
@@ -187,7 +174,7 @@ bool load_obj(const std::string &path, World &world, Vector3df &bounds_min, Vect
                         triangle = Triangle3df(a, b, c, na, nb, nc);
                     }
                 }
-                world.add(WorldObject(triangle, current));
+                scene.add(make_triangle(method, triangle, current));
                 ++triangle_count;
 
                 for (const Vector3df &p : {a, b, c}) {

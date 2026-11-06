@@ -1,86 +1,54 @@
-#undef main
-
-#include <cmath>
-#include "geometry/geometry.h"
-#include <iostream>
-#include <vector>
 #include <algorithm>
-#include <ctime>
-#include "view/window.h"
-#include "view/camera.h"
-#include "utility/color.h"
-#include "utility/light.h"
-#include "world/world.h"
-#include "utility/obj_loader.h"
-#include "utility/bmp.h"
+#include <chrono>
+#include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <string>
-#include <chrono>
+#include "io/bmp.h"
+#include "io/obj_loader.h"
+#include "render/camera.h"
+#include "render/renderer.h"
+#include "scene/scene.h"
 
-using namespace std;
+// Cornell-Box aus fuenf grossen Kugeln als Waende, dazu eine diffuse und eine spiegelnde Kugel
+static void build_sphere_box(Scene &scene) {
+    scene.add(std::make_unique<SphereObject>(Sphere3df({10021.f, 0.f, 0.f}, 10000.f), Material::matte({0.01f, 1.f, 0.01f})));
+    scene.add(std::make_unique<SphereObject>(Sphere3df({-10021.f, 0.f, 0.f}, 10000.f), Material::matte({1.f, 0.f, 0.f})));
+    scene.add(std::make_unique<SphereObject>(Sphere3df({0.f, 0.f, -10030.f}, 10000.f), Material::matte({1.f, 1.f, 1.f})));
+    scene.add(std::make_unique<SphereObject>(Sphere3df({0.f, -10012.f, 0.f}, 10000.f), Material::matte({1.f, 1.f, 1.f})));
+    scene.add(std::make_unique<SphereObject>(Sphere3df({0.f, 10012.f, 0.f}, 10000.f), Material::matte({1.f, 1.f, 1.f})));
+    scene.add(std::make_unique<SphereObject>(Sphere3df({3.f, -8.f, -15.f}, 1.f), Material::matte({0.5f, 0.5f, 1.f})));
+    scene.add(std::make_unique<SphereObject>(Sphere3df({-14.f, -8.f, -17.f}, 3.f), Material::mirror({1.f, 1.f, 1.f})));
+    scene.lights.push_back(PointLight({5.f, 11.f, -18.f}));
+}
 
-// Die folgenden Kommentare beschreiben Datenstrukturen und Funktionen
-// Die Datenstrukturen und Funktionen die weiter hinten im Text beschrieben sind,
-// hängen höchstens von den vorhergehenden Datenstrukturen ab, aber nicht umgekehrt.
+// Kamera und Lichtquelle gehoeren nicht zu Wavefront und werden aus dem Quader um die Szene bestimmt.
+// Sie haengen damit nur von der Szene ab und bleiben fuer alle Zeitmessungen gleich.
+static void place_camera_and_light(Scene &scene, Camera &camera, Vector3df bounds_min, Vector3df bounds_max) {
+    Vector3df center = 0.5f * (bounds_min + bounds_max);
+    Vector3df extent = bounds_max - bounds_min;
+    float radius = 0.5f * std::max({extent[0], extent[1], extent[2]});
+    scene.ray_bias = 1e-4f * extent.length();
 
+    // Kamera: von der Seite mit negativem z, 30 Grad ueber der Horizontalen, im Abstand, in dem die Szene ins Bild passt.
+    // In der Testszene stehen die drei Toepfe auf dieser Seite vor der Teekanne.
+    float fov = 40.f;
+    float distance = 1.05f * radius / std::sin(fov * float(M_PI) / 360.f);
+    Vector3df direction = {0.f, std::sin(30.f * float(M_PI) / 180.f), -std::cos(30.f * float(M_PI) / 180.f)};
+    camera.place(center + distance * direction, center, fov);
 
+    // Lichtquelle: oben, etwas vor und neben der Szene
+    PointLight light = PointLight(center + Vector3df{0.3f * radius, 1.2f * radius, -0.6f * radius});
+    scene.lights.push_back(light);
+    printf("DEBUG: camera (%.3f, %.3f, %.3f), look at (%.3f, %.3f, %.3f), light (%.3f, %.3f, %.3f)\n",
+           camera.position()[0], camera.position()[1], camera.position()[2],
+           center[0], center[1], center[2], light.position[0], light.position[1], light.position[2]);
+}
 
-// Ein "Bildschirm", der das Setzen eines Pixels kapselt
-// Der Bildschirm hat eine Auflösung (Breite x Höhe)
-// Kann zur Ausgabe einer PPM-Datei verwendet werden oder
-// mit SDL2 implementiert werden.
-
-
-
-// Eine "Kamera", die von einem Augenpunkt aus in eine Richtung senkrecht auf ein Rechteck (das Bild) zeigt.
-// Für das Rechteck muss die Auflösung oder alternativ die Pixelbreite und -höhe bekannt sein.
-// Für ein Pixel mit Bildkoordinate kann ein Sehstrahl erzeugt werden.
-
-
-
-// Für die "Farbe" benötigt man nicht unbedingt eine eigene Datenstruktur.
-// Sie kann als Vector3df implementiert werden mit Farbanteil von 0 bis 1.
-// Vor Setzen eines Pixels auf eine bestimmte Farbe (z.B. 8-Bit-Farbtiefe),
-// kann der Farbanteil mit 255 multipliziert  und der Nachkommaanteil verworfen werden.
-
-
-// Das "Material" der Objektoberfläche mit ambienten, diffusem und reflektiven Farbanteil.
-
-
-
-// Ein "Objekt", z.B. eine Kugel oder ein Dreieck, und dem zugehörigen Material der Oberfläche.
-// Im Prinzip ein Wrapper-Objekt, das mindestens Material und geometrisches Objekt zusammenfasst.
-// Kugel und Dreieck finden Sie in geometry.h/tcc
-
-
-// verschiedene Materialdefinition, z.B. Mattes Schwarz, Mattes Rot, Reflektierendes Weiss, ...
-// im wesentlichen Variablen, die mit Konstruktoraufrufen initialisiert werden.
-
-
-// Die folgenden Werte zur konkreten Objekten, Lichtquellen und Funktionen, wie Lambertian-Shading
-// oder die Suche nach einem Sehstrahl für das dem Augenpunkt am nächsten liegenden Objekte,
-// können auch zusammen in eine Datenstruktur für die gesammte zu
-// rendernde "Szene" zusammengefasst werden.
-
-// Die Cornelbox aufgebaut aus den Objekten
-// Am besten verwendet man hier einen std::vector< ... > von Objekten.
-
-// Punktförmige "Lichtquellen" können einfach als Vector3df implementiert werden mit weisser Farbe,
-// bei farbigen Lichtquellen müssen die entsprechenden Daten in Objekt zusammengefaßt werden
-// Bei mehreren Lichtquellen können diese in einen std::vector gespeichert werden.
-
-// Sie benötigen eine Implementierung von Lambertian-Shading, z.B. als Funktion
-// Benötigte Werte können als Parameter übergeben werden, oder wenn diese Funktion eine Objektmethode eines
-// Szene-Objekts ist, dann kann auf die Werte teilweise direkt zugegriffen werden.
-// Bei mehreren Lichtquellen muss der resultierende diffuse Farbanteil durch die Anzahl Lichtquellen geteilt werden.
-
-// Für einen Sehstrahl aus allen Objekte, dasjenige finden, das dem Augenpunkt am nächsten liegt.
-// Am besten einen Zeiger auf das Objekt zurückgeben. Wenn dieser nullptr ist, dann gibt es kein sichtbares Objekt.
-
-// Die rekursive raytracing-Methode. Am besten ab einer bestimmten Rekursionstiefe (z.B. als Parameter übergeben) abbrechen.
-
-Camera* cam;
+static double milliseconds_since(std::chrono::steady_clock::time_point start) {
+    return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+}
 
 // Kommandozeile: raytracer [scene.obj] [-w breite] [-h hoehe] [-s sehstrahlen_pro_pixel] [-d tiefe] [--badouel] [-o ausgabe.bmp]
 //   ohne scene.obj wird die Szene aus Kugeln gerendert
@@ -89,7 +57,7 @@ int main(int argc, char** argv) {
     std::string scene_file;
     std::string output = "raytracer.bmp";
     int width = 1280, height = 720, samples = 1, depth = 5;
-    bool badouel = false;
+    TriangleMethod method = TriangleMethod::MoellerTrumbore;
 
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "-w") == 0 && i + 1 < argc)         width = atoi(argv[++i]);
@@ -97,7 +65,7 @@ int main(int argc, char** argv) {
         else if (strcmp(argv[i], "-s") == 0 && i + 1 < argc)    samples = atoi(argv[++i]);
         else if (strcmp(argv[i], "-d") == 0 && i + 1 < argc)    depth = atoi(argv[++i]);
         else if (strcmp(argv[i], "-o") == 0 && i + 1 < argc)    output = argv[++i];
-        else if (strcmp(argv[i], "--badouel") == 0)             badouel = true;
+        else if (strcmp(argv[i], "--badouel") == 0)             method = TriangleMethod::Badouel;
         else if (argv[i][0] != '-' && scene_file.empty())       scene_file = argv[i];
         else {
             printf("Usage: raytracer [scene.obj] [-w width] [-h height] [-s samples] [-d depth] [--badouel] [-o output.bmp]\n");
@@ -109,64 +77,37 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    auto world = new World();
-    auto win = new Window("Raytracer", float(width), float(height), world);
-    win->samples_per_pixel = samples;
-    win->max_depth = depth;
-    world->moeller_trumbore = !badouel;
-
+    Scene scene;
+    Camera camera(width, height);
     if (scene_file.empty()) {
-    WorldObject obj1 = WorldObject({ { 10021.f, 0.0f, 0.f }, 10000.f },{{0.01f, 1.f, 0.01f}, 0});
-    WorldObject obj2 = WorldObject({ { -10021.f, 0.0f, 0.f }, 10000.f }, {{1.f, 0.f, 0.f}, 0});
-    WorldObject obj4 = WorldObject({ { 0.f, -10012.0f, 0.f }, 10000.f }, {{1.f, 1.f, 1.f}, 0});
-    WorldObject obj5 = WorldObject({ { 0.f, 10012.0f, 0.f }, 10000.f }, {{1.f, 1.f, 1.f}, 0});
-    WorldObject obj3 = WorldObject({ { 0.0f, 0.0f, -10030.f }, 10000.f }, {{1.f, 1.f, 1.f}, 0});
-
-    WorldObject obj6 = WorldObject({ {3.f, -8.f, -15.f}, 1.f }, {{0.5f, 0.5f, 1.f}, 0});
-    WorldObject obj7 = WorldObject({ {-14.f, -8.f, -17.f}, 3.f }, {{1.f, 1.f, 1.f}, 1});
-
-    PointLight light = PointLight({5.f, 11.f, -18.f});
-
-    world->lights.push_back(light);
-    world->add(obj6);
-    world->add(obj1);
-    world->add(obj2);
-    world->add(obj3);
-    world->add(obj4);
-    world->add(obj5);
-    world->add(obj7);
+        build_sphere_box(scene);
     } else {
-        // Szene aus einer Wavefront-Datei. Kamera und Lichtquelle gehoeren nicht zu Wavefront und werden hier
-        // aus dem Quader um die Szene bestimmt. Sie haengen damit nur von der Szene ab und bleiben fuer
-        // alle Zeitmessungen gleich.
         Vector3df bounds_min = {0.f, 0.f, 0.f}, bounds_max = {0.f, 0.f, 0.f};
         auto load_start = std::chrono::steady_clock::now();
-        if (!load_obj(scene_file, *world, bounds_min, bounds_max))
+        if (!load_obj(scene_file, scene, method, bounds_min, bounds_max))
             return 1;
-        double load_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - load_start).count();
-        printf("TIME: load %.1f ms\n", load_ms);
-
-        Vector3df center = 0.5f * (bounds_min + bounds_max);
-        Vector3df extent = bounds_max - bounds_min;
-        float radius = 0.5f * std::max({extent[0], extent[1], extent[2]});
-        world->ray_bias = 1e-4f * extent.length();
-
-        // Kamera: von der Seite mit negativem z, 30 Grad ueber der Horizontalen, im Abstand, in dem die Szene ins Bild passt.
-        // In der Testszene stehen die drei Toepfe auf dieser Seite vor der Teekanne.
-        float fov = 40.f;
-        win->cam->set_fov(fov);
-        float distance = 1.05f * radius / std::sin(fov * float(M_PI) / 360.f);
-        Vector3df direction = {0.f, std::sin(30.f * float(M_PI) / 180.f), -std::cos(30.f * float(M_PI) / 180.f)};
-        win->cam->camera_center = center + distance * direction;
-        win->cam->look_at(center);
-
-        // Lichtquelle: oben, etwas vor und neben der Szene
-        PointLight light = PointLight(center + Vector3df{0.3f * radius, 1.2f * radius, -0.6f * radius});
-        world->lights.push_back(light);
-        printf("DEBUG: camera (%.3f, %.3f, %.3f), look at (%.3f, %.3f, %.3f), light (%.3f, %.3f, %.3f)\n",
-               win->cam->camera_center[0], win->cam->camera_center[1], win->cam->camera_center[2],
-               center[0], center[1], center[2], light.center[0], light.center[1], light.center[2]);
+        printf("TIME: load %.1f ms\n", milliseconds_since(load_start));
+        place_camera_and_light(scene, camera, bounds_min, bounds_max);
     }
 
-    return win->Run(output.c_str()) == 1 ? 0 : 1;
+    Renderer renderer(scene, camera);
+    renderer.samples_per_pixel = samples;
+    renderer.max_depth = depth;
+
+    auto render_start = std::chrono::steady_clock::now();
+    std::vector<uint32_t> pixels = renderer.render();
+    printf("TIME: render %.1f ms\n", milliseconds_since(render_start));
+
+    // Primaerstrahlen gehen alle in die Suche nach dem naechsten Treffer, der Rest davon sind Folgestrahlen
+    uint64_t primary = uint64_t(width) * uint64_t(height) * uint64_t(samples);
+    printf("STATS: primary %llu, secondary %llu, shadow %llu, tests %llu\n",
+           (unsigned long long) primary, (unsigned long long) (scene.nearest_queries - primary),
+           (unsigned long long) scene.any_queries, (unsigned long long) scene.intersection_tests);
+
+    if (!save_bmp(output.c_str(), width, height, pixels)) {
+        printf("Error writing %s\n", output.c_str());
+        return 1;
+    }
+    printf("DEBUG: Image saved as %s\n", output.c_str());
+    return 0;
 }

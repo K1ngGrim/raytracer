@@ -1,5 +1,5 @@
 #include "bmp.h"
-#include "color.h"
+#include "../math/color.h"
 #include "gtest/gtest.h"
 #include <cstdio>
 #include <fstream>

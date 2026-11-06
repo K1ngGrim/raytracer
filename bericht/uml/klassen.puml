@@ -1,0 +1,93 @@
+@startuml klassen
+' Klassendiagramm des Raytracers fuer den Bericht. Erzeugen mit:  plantuml -tsvg klassen.puml
+skinparam monochrome true
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 15
+skinparam packageStyle rectangle
+skinparam nodesep 15
+skinparam ranksep 22
+hide empty members
+hide circle
+
+package render {
+  class Renderer {
+    samples_per_pixel : int
+    max_depth : int
+    render() : vector<uint32_t>
+  }
+  class Camera {
+    place(position, target, fov)
+    primary_ray(x, y) : Ray3df
+  }
+  class Shader {
+    trace(ray, depth) : color
+    direct_light(material, point, normal, viewer) : color
+  }
+}
+
+package io {
+  class obj_loader <<Funktionen>> {
+    load_obj(path, scene, method, ...) : bool
+  }
+  class bmp <<Funktionen>> {
+    save_bmp(filename, ...) : bool
+  }
+}
+
+package scene {
+  class Scene {
+    ray_bias : float
+    nearest_hit(ray, context) : SceneObject*
+    any_hit(ray, max_t) : bool
+  }
+  abstract class SceneObject {
+    {abstract} intersects(ray, context) : bool
+    {abstract} shading_normal(ray, context) : Vector3df
+    {abstract} ray_starts_inside(ray) : bool
+  }
+  class SphereObject {
+    sphere : Sphere3df
+    intersects(ray, context) : bool
+  }
+  abstract class TriangleObject {
+    triangle : Triangle3df
+    shading_normal(ray, context) : Vector3df
+    ray_starts_inside(ray) : bool
+  }
+  class MoellerTrumboreTriangle {
+    intersects(ray, context) : bool
+  }
+  class BadouelTriangle {
+    normal : Vector3df
+    plane_d : float
+    axis_u, axis_v : int
+    intersects(ray, context) : bool
+  }
+  class Material {
+    ambient, diffuse, specular : color
+    shininess : float
+    transparency : float
+    refraction_index : float
+  }
+  class PointLight {
+    position : Vector3df
+    intensity : color
+  }
+}
+
+Renderer -down-> Camera
+Renderer *-down- Shader
+Shader -right-> Scene
+Scene *-right- "*" PointLight
+Scene *-down- "*" SceneObject
+SceneObject *-right- Material
+SceneObject <|-down- SphereObject
+SceneObject <|-down- TriangleObject
+TriangleObject <|-down- MoellerTrumboreTriangle
+TriangleObject <|-down- BadouelTriangle
+Camera -[hidden]down- obj_loader
+obj_loader -[hidden]right- bmp
+obj_loader ..> TriangleObject : make_triangle(method)
+@enduml
